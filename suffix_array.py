@@ -9,8 +9,16 @@ class suffix_array:
 
 	# TODO: Maybe Skew algo?
 	def construct_array(self):
-		self.array = [s[1] for s in sorted((self.string[i:],i) for i in range(self.length))]
+		self.array = [s[1] for s in sorted((self.string[i:], i) for i in range(self.length))]
 		return self.array
+
+	def construct_array_skew(self):
+		suffixes_12 = [i for i in range(self.length) if i%3 != 0]
+		self.array = suffixes_12
+
+
+
+
 
 	def construct_isa(self):
 		self.isa = [None] * self.length
@@ -55,10 +63,12 @@ print(lcp1.string)
 
 sa1.construct_array()
 print(sa1.array)
-sa1.construct_isa()
-print(sa1.isa)
 
+sa1.construct_array_skew()
+print(sa1.array)
 
+for s in sa1.array:
+	print(sa1.string[s:])
 
 
 
