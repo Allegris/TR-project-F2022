@@ -47,18 +47,22 @@ class suffix_array:
 				if suffixes_12[i][0] != suffixes_12[i-1][0]:
 					lexname += 1
 				index_to_lexname_dict[suffixes_12[i][1]] = (suffixes_12[i][0], lexname)
-			print(index_to_lexname_dict)
 
 
-			suffixes_12_lex = [(suffixes_12[i][1], suffixes_12[i][0], i) for i in range(len(suffixes_12))]
-			#print(suffixes_12_lex)
+			# All the mod 1 suffixes (non-sorted)
 			suffixes_1 = [i for i in range(self.length) if i%3 == 1]
+			# All the mod 2 suffixes (non-sorted)
 			suffixes_2 = [i for i in range(self.length) if i%3 == 2]
 
-			#for s in suffixes_1:
-		#		print(index_to_lexname_dict[s][1])
+			# Create u string to recurse on
+			# 5540#3321  (lex names for mod 2 suffixes, '#', and lex names for mod 1 suffixes)
+			u = ""
+			for i in suffixes_2:
+				u += str(index_to_lexname_dict[i][1])
+			u += "#"
+			for i in suffixes_1:
+				u += str(index_to_lexname_dict[i][1])
 
-			#print(suffixes_2)
 
 
 	######################################################
