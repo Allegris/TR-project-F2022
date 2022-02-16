@@ -21,7 +21,7 @@ class suffix_array:
 
 	def construct_sa_12(self, string):
 
-		print(string)
+		#print(string)
 
 		# Create triples and sort them
 		# [('$$$', 11), ('i$$', 10), ('ipp', 7), ...]
@@ -31,7 +31,7 @@ class suffix_array:
 		sa_12 = [s[1] for s in suffixes_12]
 		# ['$$$', 'i$$', 'ipp', ...]
 		sa_12_triples =  [s[0] for s in suffixes_12]
-		print(sa_12_triples)
+		#print(sa_12_triples)
 
 		# If no duplicates in triple list, we are done
 		if len(sa_12_triples) == len(set(sa_12_triples)):
@@ -114,14 +114,8 @@ class lcp_array:
 
 
 sa1 = suffix_array("mississippi")
-lcp1 = sa1.construct_lcp_array()
-#print(lcp1.string)
-
-sa1.construct_array()
-#print(sa1.array)
-
 sa1.construct_array_skew()
-#print(sa1.array)
+print(sa1.array)
 
 
 
