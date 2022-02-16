@@ -7,7 +7,7 @@ class suffix_array:
 		self.isa = None
 		self.lcp = None
 
-	# TODO: Maybe Skew algo?
+	# Computes SA, but inefficiently
 	def construct_array(self):
 		self.array = [s[1] for s in sorted((self.string[i:], i) for i in range(self.length))]
 		return self.array
@@ -15,23 +15,27 @@ class suffix_array:
 
 	##### SKEW ALGORITHM FOR COMPUTING SUFFIX ARRAY #####
 	def construct_array_skew(self):
-		sa_12 = self.construct_sa_12()
+		padded_string = self.string + "$$"
+		sa_12 = self.construct_sa_12(padded_string)
 		self.array = sa_12
 
-	def construct_sa_12(self):
-		padded_string = self.string + "$$"
+	def construct_sa_12(self, string):
+
+		print(string)
 
 		# Create triples and sort them
 		# [('$$$', 11), ('i$$', 10), ('ipp', 7), ...]
-		suffixes_12 = [s for s in sorted((padded_string[i:i+3], i) for i in range(self.length) if i%3 != 0)]
+		suffixes_12 = [s for s in sorted((string[i:i+3], i) for i in range(self.length) if i%3 != 0)]
 
 		# [11, 10, 7, ...]
 		sa_12 = [s[1] for s in suffixes_12]
 		# ['$$$', 'i$$', 'ipp', ...]
 		sa_12_triples =  [s[0] for s in suffixes_12]
+		print(sa_12_triples)
 
 		# If no duplicates in triple list, we are done
 		if len(sa_12_triples) == len(set(sa_12_triples)):
+			print("DONE")
 			return sa_12
 		else:
 			# Assign new lex names to triples
@@ -63,6 +67,7 @@ class suffix_array:
 			for i in suffixes_1:
 				u += str(index_to_lexname_dict[i][1])
 
+			self.construct_sa_12(u)
 
 
 	######################################################
