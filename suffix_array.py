@@ -14,8 +14,11 @@ class suffix_array:
 
 	def construct_array_skew(self):
 		suffixes_12 = [i for i in range(self.length) if i%3 != 0]
-		self.array = suffixes_12
 
+
+		padded_string = self.string + "$$"
+		suffixes_12 = [s for s in sorted((padded_string[i:i+3], i) for i in range(self.length) if i%3 != 0)]
+		self.array = suffixes_12
 
 
 
@@ -67,8 +70,6 @@ print(sa1.array)
 sa1.construct_array_skew()
 print(sa1.array)
 
-for s in sa1.array:
-	print(sa1.string[s:])
 
 
 
