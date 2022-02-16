@@ -36,12 +36,29 @@ class suffix_array:
 		else:
 			# Assign new lex names to triples
 			# [(11, '$$$', 0), (10, 'i$$', 1), (7, 'ipp', 2), ...]
+			index_to_lexname_dict = dict([(suffixes_12[i][1], (suffixes_12[i][0], i)) for i in range(len(suffixes_12))])
+
+			# Dict with key: index of suffix into string, and val: (triple, lex name)
+			# {11: ('$$$', 0), 10: ('i$$', 1), 7: ('ipp', 2), ...}
+			lexname = 0
+			index_to_lexname_dict = dict()
+			index_to_lexname_dict[suffixes_12[0][1]] = (suffixes_12[0][0], lexname)
+			for i in range(1, len(suffixes_12)):
+				if suffixes_12[i][0] != suffixes_12[i-1][0]:
+					lexname += 1
+				index_to_lexname_dict[suffixes_12[i][1]] = (suffixes_12[i][0], lexname)
+			print(index_to_lexname_dict)
+
+
 			suffixes_12_lex = [(suffixes_12[i][1], suffixes_12[i][0], i) for i in range(len(suffixes_12))]
-			print(suffixes_12_lex)
+			#print(suffixes_12_lex)
 			suffixes_1 = [i for i in range(self.length) if i%3 == 1]
 			suffixes_2 = [i for i in range(self.length) if i%3 == 2]
 
-			print(suffixes_2)
+			#for s in suffixes_1:
+		#		print(index_to_lexname_dict[s][1])
+
+			#print(suffixes_2)
 
 
 	######################################################
