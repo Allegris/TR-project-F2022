@@ -1,5 +1,5 @@
 s = "mississippi$"
-SENTINEL = "$"
+SENTINEL = "#"
 
 # Make sure we don't reach beyond string length when getting a char from the string
 def safe_get_char(string, index):
@@ -15,8 +15,9 @@ def get_triplet(string, i):
 
 
 # Get alphabet of lex-names for the triples starting at given indices
+# Input should be string and suffix array
 def get_alphabet(string, indices):
-	alphabet = {}
+	alphabet = {('#', '#', '#', 0)}
 	letter = 0
 	for i in indices:
 		triplet = get_triplet(string, i)
@@ -24,3 +25,4 @@ def get_alphabet(string, indices):
 			alphabet[triplet] = letter
 			letter += 1
 	return alphabet
+
