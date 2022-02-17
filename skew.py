@@ -1,4 +1,4 @@
-s = "mississippi"
+s = "mississippi$"
 SENTINEL = "$"
 
 # Make sure we don't reach beyond string length when getting a char from the string
@@ -33,12 +33,12 @@ def construct_u(string, alphabet):
 	u = ""
 	# Lex names for i mod 3 = 1
 	for  i in range(1, len(string), 3):
-		u += alphabet[get_triplet(string, i)]
+		u += str(alphabet[get_triplet(string, i)])
 	# Add sentinel
 	u += SENTINEL
 	# Lex names for i mod 3 = 2
 	for  i in range(2, len(string), 3):
-		u += alphabet[get_triplet(string, i)]
+		u += str(alphabet[get_triplet(string, i)])
 	return u
 
 
@@ -63,7 +63,8 @@ def compute_sa_12(string):
 def skew_rec(string):
 	sa_12 = compute_sa_12(string)
 	alphabet = get_alphabet(string, sa_12)
-	return alphabet
+	u = construct_u(string, alphabet)
+	return u
 
 
 
