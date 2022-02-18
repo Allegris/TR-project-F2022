@@ -1,4 +1,4 @@
-s = "mississippi" # must not include sentinel
+s = "mississippi$" # must not include sentinel
 SENTINEL_terminal = "$"
 SENTINEL_central = "#"
 
@@ -67,41 +67,35 @@ def construct_isa(sa):
 		isa[sa[i]] = i
 	return isa
 
+
+def less(string, i, j, isa):
+	a = safe_get_char(string, i)
+	b = safe_get_char(string, j)
+	if a < b:
+		return True
+	if a > b:
+		return False
+	if i % 3 != 0 and j % 3 != 0:
+		return isa[i] < isa[j]
+	return less(string, i + 1, j + 1, isa)
+
+
+
 def merge(string, sa_12, sa_3):
-	sa = []
-	isa_12 = construct_isa(sa_12)
-	print("isa: ", isa_12)
-	i = j = 0
-	while i < len(sa_3) and j < len(sa_12):
-		if string[sa_3[i]] < string[sa_12[j]]:
-			sa.append(sa_3[i])
-			i +=1
-		elif string[sa_12[j]] < string[sa_3[i]]:
-			sa.append(sa_12[j])
-			j += 1
-		elif string[sa_3[i]] == string[sa_12[j]]:
-			if j % 3 == 1:
-				if isa_12[sa_3[i + 1]] < isa_12[sa_3[j + 1]]:
-					sa.append(sa_3[i])
-					i += 1
-				else:
-					sa.append(sa_12[j])
-					j += 1
-			elif j % 3 == 2:
-				if string[sa_3[i + 1]] < string[sa_12[j + 1]]:
-					sa.append(sa_3[i])
-					i += 1
-				elif string[sa_12[j + 1]] < string[sa_3[i + 1]]:
-					sa.append(sa_12[j])
-					j += 1
-				elif string[sa_3[i + 1]] == string[sa_12[j + 1]]:
-					if isa_12[sa_3[i + 2]] < isa_12[sa_3[j + 2]]:
-						sa.append(sa_3[i])
-						i += 1
-					else:
-						sa.append(sa_12[j])
-						j += 1
-		return sa
+    isa_12 = {sa_12[i]: i for i in range(len(sa_12))}
+    sa = []
+    i = j = 0
+    while i < len(sa_12) and j < len(sa_3):
+        if less(string, sa_12[i], sa_3[j], isa_12):
+            sa.append(sa_12[i])
+            i += 1
+        else:
+            sa.append(sa_3[j])
+            j += 1
+    sa.extend(sa_12[i:])
+    sa.extend(sa_3[j:])
+    return sa
+
 
 
 def skew_rec(string):
