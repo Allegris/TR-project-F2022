@@ -40,7 +40,6 @@ def construct_u(string, alphabet):
 	# Lex names for i mod 3 = 2
 	for  i in range(2, len(string), 3):
 		u += str(alphabet[get_triplet(string, i)])
-	print("u: ", u)
 	return u
 
 
@@ -62,6 +61,48 @@ def compute_sa_12(string):
 	sa_12 = [t[0] for t in triplets_12]
 	return sa_12
 
+def construct_isa(sa):
+	isa = {}#[None] * len(sa)
+	for i in range(0, len(sa)):
+		isa[sa[i]] = i
+	return isa
+
+def merge(string, sa_12, sa_3):
+	sa = []
+	isa_12 = construct_isa(sa_12)
+	print("isa: ", isa_12)
+	i = j = 0
+	while i < len(sa_3) and j < len(sa_12):
+		if string[sa_3[i]] < string[sa_12[j]]:
+			sa.append(sa_3[i])
+			i +=1
+		elif string[sa_12[j]] < string[sa_3[i]]:
+			sa.append(sa_12[j])
+			j += 1
+		elif string[sa_3[i]] == string[sa_12[j]]:
+			if j % 3 == 1:
+				if isa_12[sa_3[i + 1]] < isa_12[sa_3[j + 1]]:
+					sa.append(sa_3[i])
+					i += 1
+				else:
+					sa.append(sa_12[j])
+					j += 1
+			elif j % 3 == 2:
+				if string[sa_3[i + 1]] < string[sa_12[j + 1]]:
+					sa.append(sa_3[i])
+					i += 1
+				elif string[sa_12[j + 1]] < string[sa_3[i + 1]]:
+					sa.append(sa_12[j])
+					j += 1
+				elif string[sa_3[i + 1]] == string[sa_12[j + 1]]:
+					if isa_12[sa_3[i + 2]] < isa_12[sa_3[j + 2]]:
+						sa.append(sa_3[i])
+						i += 1
+					else:
+						sa.append(sa_12[j])
+						j += 1
+		return sa
+
 
 def skew_rec(string):
 	#print("BEGIN: ", string)
@@ -70,40 +111,37 @@ def skew_rec(string):
 	#print("alphabet: ", alphabet)
 	#print("sa_12: ", sa_12)
 
-	# If all unique in sa_12, we are done (if they have equal length, then we have a duplicate in sa_12, because alphabet contains sentinel)
-	if len(sa_12) < len(alphabet):
-		return sa_12
-	else:
+	# If all unique in sa_12, don't recurse (if they have equal length, then we have a duplicate in sa_12, because alphabet contains sentinel)
+	if len(sa_12) >= len(alphabet):
 		u = construct_u(string, alphabet)
 		#print("u string: ", u)
 		sa_u = skew_rec(u)
 		m = len(u) // 2
-		print("sa_u: ", sa_u)
+		#print(string, "sa_u: ", sa_u)
 		sa_12 = [map_u_to_string_index(i, m) for i in sa_u if i != m] # i == m is central sentinel (#)
 		#print(string, m, "sa_12: ", sa_12)
 
 
 	# Construct sa_3 from sa_12
 	sa_3 = []
-	# Special case if last index in string is 0 mod 3, then this suffix should be first in sa_3
+	# Special case if last index in string is 0 mod 3, then this suffix should be first in sa_3, since it is the shortest suffix
+	# (it will be sorted based on the first (and in this case only) character later)
 	if len(string) % 3 == 1:
 		sa_3.append(len(string) - 1)
 	# Use the order found in sa_12
-	print("sa_12: ", sa_12)
 	sa_3 += [i - 1 for i in sa_12 if i % 3 == 1]
 	# Stable sort on first character
-	#sa_3 = sorted(sa_3, key=lambda x:x[:1])
-	print("SA_3: ", sa_3)
-	return sa_3
+	sa_3 = sorted(sa_3, key = lambda x : string[x][:1])
 
-	# TODO
-	#return merge(string, sa_12, sa_3)
+	print(string, "sa_12: ", sa_12)
+	print(string, "SA_3: ", sa_3)
+	return merge(string, sa_12, sa_3)
 
 
-skew_rec(s)
-
+print(skew_rec(s))
 
 
 
+#print(sorted(["aaa", "aba", "aaa"], key=lambda x:x[0:1]))
 
 
