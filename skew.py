@@ -151,7 +151,8 @@ def skew_rec(string):
 
 ### TEST CODE ###
 
+'''
 s = "mississippi$"
 print(skew_rec(s))
-
+'''
 

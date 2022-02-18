@@ -1,9 +1,11 @@
+import skew
+
 
 class suffix_array:
 	def __init__(self, string):
-		self.string = string + "$"
+		self.string = string #+ "$"
 		self.length = len(self.string)
-		self.array = [None] * self.length # self.construct_array_skew()
+		self.array = skew.skew_rec(self.string)
 		self.isa = None
 		self.lcp = None
 
@@ -13,15 +15,11 @@ class suffix_array:
 		return self.array
 
 	def construct_isa(self):
-		self.isa = [None] * self.length
-		for i in range(0, self.length):
-			self.isa[self.array[i]] = i
-		return self.isa
+		return {self.array[i]: i for i in range(self.length)}
 
 	def construct_lcp_array(self):
 		self.lcp = lcp_array(self)
 		return self.lcp
-
 
 
 
