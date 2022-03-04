@@ -1,6 +1,11 @@
+
 import skew
 
+
+########################################################
 # Class representing a suffix array for a string
+########################################################
+
 class suffix_array:
 	def __init__(self, string):
 		self.string = string #+ "$"
@@ -10,7 +15,7 @@ class suffix_array:
 		self.lcp = None
 
 	'''
-	# Computes SA, but inefficiently
+	# OLD: Computes SA, but inefficiently
 	def construct_array(self):
 		self.array = [s[1] for s in sorted((self.string[i:], i) for i in range(self.length))]
 		return self.array
@@ -27,7 +32,10 @@ class suffix_array:
 		return self.lcp
 
 
+########################################################
 # Class representing an lcp array for a string
+########################################################
+
 class lcp_array:
 	def __init__(self, sa):
 		self.sa = sa
@@ -65,7 +73,6 @@ class lcp_array:
 			lcp[ii] = offset
 		return lcp
 
-
 	# TO DO
 	def RMQ(self, i, j):
 		return i, 0
@@ -85,7 +92,9 @@ class lcp_array:
 
 
 
-### TEST CODE ###
+########################################################
+# TEST CODE
+########################################################
 
 s = "mississippi$"
 print("str: ", s)
