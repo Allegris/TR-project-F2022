@@ -102,11 +102,6 @@ class lcp_array:
 	def RMQ(self, L, R):
 		interval = self.array[L:R] # The interval to do RMQ on
 		j = len(interval).bit_length() - 1 # log(interval_len) floor
-		# RMQ matrix has the form [[(idx, val), (idx, val),...],[(idx, val),...],...]
-		# Where rows are LCP indices and
-		# Cols are j=1,2,4,8,16,... where we have calculated RMQ for intervals of lengths 2^j
-		# So col 1 is j=0 (interval length 2^j = 2^0 = 1), col 2 is j=1 (interval length 2^1=2), etc.
-
 		# Min of left and right interval of exponents 2^j
 		# I.e. interval starting at pos L with length 2^j
 		# and interval starting at pos R - 2**j of length 2^j
@@ -119,6 +114,10 @@ class lcp_array:
 
 	'''
 	Preprocess matrix for RMQ in time O(n*log(n))
+	Returns RMQ matrix of the form [[(idx, val), (idx, val),...],[(idx, val),...],...]
+	Where rows are LCP indices and
+	Cols are j=1,2,4,8,16,... where we have calculated RMQ for intervals of lengths 2^j
+	So col 1 is j=0 (interval length 2^j = 2^0 = 1), col 2 is j=1 (interval length 2^1=2), etc.
 	'''
 	def RMQ_preprocess(self, n):
 		# M matrix to fill: n x log(n),
