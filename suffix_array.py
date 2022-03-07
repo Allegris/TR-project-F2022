@@ -1,7 +1,7 @@
 
 import skew
-import numpy as np
 import sys
+from pandas import *
 
 ########################################################
 # Class representing a suffix array for a string
@@ -114,7 +114,7 @@ class lcp_array:
 		# M matrix to fill: n x log(n) (floored),
 		# where entry M[i][j] is the RMQ for interval starting at idx i of length 2^j
 		log_n = n.bit_length() - 1 # this is log(n) floored, so eg. for 15 => 3 (2^3 = 8)
-		M = np.full((n, log_n + 1), fill_value = 1000000, dtype = int) # +1 is the first column of singleton intervals
+		M = [[sys.maxsize]*(log_n + 1) for _ in range(n)]
 		# Intervals of length 1 first:
 		for i in range(n):
 			M[i][0] = self.array[i]
@@ -151,7 +151,7 @@ sa1.construct_lcp_array()
 print("lcp: ", sa1.lcp.array)
 
 print(sa1.lcp.RMQ(11,12))
-#print(sa1.lcp.RMQ_matrix)
+print(DataFrame(sa1.lcp.RMQ_matrix))
 
 
 
