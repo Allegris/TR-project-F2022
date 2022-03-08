@@ -1,6 +1,7 @@
 
 import skew
 import sys
+#sys.setrecursionlimit(10000) # TODO: remove
 from pandas import *
 
 ########################################################
@@ -65,21 +66,6 @@ class lcp_array:
 		return lcp
 
 
-	# Get child intervals for an L-lcp interval [i,j)
-	def get_child_intervals(self, i, j):
-		res = []
-		(prev_i, L) = self.RMQ(i, j)
-		if i != prev_i:
-			res.append((i, prev_i)) # first interval
-		(ii, LL) = self.RMQ(prev_i + 1, j)
-		while LL == L:
-			res.append((prev_i, ii))
-			prev_i = ii
-			(ii, LL) = self.RMQ(prev_i + 1, j)
-		res.append((prev_i, j))
-		return res
-
-
 	########################################################
 	# Range Minimum Query (RMQ) for LCP array
 	########################################################
@@ -139,6 +125,23 @@ class lcp_array:
 	# Finding branching tandem repeats
 	########################################################
 
+
+	'''
+	Get child intervals for an L-lcp interval [i,j)
+	'''
+	def get_child_intervals(self, i, j):
+		res = []
+		(prev_i, L) = self.RMQ(i, j)
+		if i != prev_i:
+			res.append((i, prev_i)) # first interval
+		(ii, LL) = self.RMQ(prev_i + 1, j)
+		while LL == L:
+			res.append((prev_i, ii))
+			prev_i = ii
+			(ii, LL) = self.RMQ(prev_i + 1, j)
+		res.append((prev_i, j))
+		return res
+
 	'''
 	List of indices where we have tandem repeats
 	'''
@@ -161,20 +164,13 @@ class lcp_array:
 		return res
 
 
+	# TODO: This function should work, but get_child_intervals has an error:
+	# Eg. print(lcp.get_child_intervals(0,8)) works fine, but error for:
+	# print(lcp.get_child_intervals(0,9))
 	# TODO: Make a recursive funtion that finds ALL the child intervals
 	# (so also the child intervals of the child intervals, all the way down to the leaves (i, i+1))
 	# Then call this function in process instead of get_child_intervals
-	def run_process(self, i, j, res = None):
-		if res is None:
-			res = []
-		child_intervals = self.get_child_intervals(i, j)
-		res = res + child_intervals
-		for (ii, jj) in child_intervals:
-			if jj-ii > 1: # if not singleton interval / leaf in suffix tree
-				self.run_process(ii, jj, res)
-		return res
-
-	def old_run_process(self, i, j):
+	def run_process(self, i, j):
 		res = []
 		child_intervals = self.get_child_intervals(i, j)
 		res += child_intervals
@@ -182,7 +178,7 @@ class lcp_array:
 			if jj-ii > 1: # if not singleton interval / leaf in suffix tree
 				res += self.run_process(ii, jj)
 			else:
-				return (ii, jj)
+				res += (ii, jj)
 		return res
 
 
@@ -205,4 +201,5 @@ print("lcp: ", lcp.array)
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
-print("Branding tandem repeats: ", lcp.run_process(0, 12))
+print(lcp.get_child_intervals(0,9))
+#print("Branding tandem repeats: ", lcp.run_process(0, 12))
