@@ -76,12 +76,12 @@ class lcp_array:
 		return lcp
 
 
-
-	# Get child intervald for an L-lcp interval [i,j)
+	# Get child intervals for an L-lcp interval [i,j)
 	def get_child_intervals(self, i, j):
 		res = []
 		(prev_i, L) = self.RMQ(i, j)
-		res.append((i, prev_i)) # first interval
+		if i != prev_i:
+			res.append((i, prev_i)) # first interval
 		(ii, LL) = self.RMQ(prev_i + 1, j)
 		while LL == L:
 			res.append((prev_i, ii))
@@ -89,6 +89,7 @@ class lcp_array:
 			(ii, LL) = self.RMQ(prev_i + 1, j)
 		res.append((prev_i, j))
 		return res
+
 
 	########################################################
 	# Range Minimum Query (RMQ) for LCP array
@@ -106,10 +107,10 @@ class lcp_array:
 		# I.e. interval starting at pos L with length 2^j
 		# and interval starting at pos R - 2**j of length 2^j
 		# There may be an overlap in the two intervals, but this is OK, result will not change
-		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[L + (2**j)][j][1]:
+		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[R - (2**j)][j][1]:
 			return self.RMQ_matrix[L][j]
 		else:
-			return self.RMQ_matrix[L + (2**j)][j]
+			return self.RMQ_matrix[R - (2**j)][j]
 
 
 	'''
@@ -123,7 +124,8 @@ class lcp_array:
 		# M matrix to fill: n x log(n),
 		# where entry M[i][j] is the RMQ for interval starting at idx i of length 2^j
 		log_n = n.bit_length() # this is log(n) ceil, so eg. for 15 => 4 (2^4 = 16)
-		M = [[sys.maxsize]*(log_n) for _ in range(n)]
+		#M = [[(sys.maxsize, sys.maxsize)]*(log_n) for _ in range(n)]
+		M = [[(None, None)]*(log_n) for _ in range(n)]
 		# Intervals of length 1 first:
 		for i in range(n):
 			M[i][0] = (i, self.array[i])
@@ -139,10 +141,9 @@ class lcp_array:
 				# These two are the intervals:
 				# 1) Starting at pos i with length 2^(j-1)
 				# 2) Starting at pos i + 2^(j-1) with length 2^(j-1)
-				left_val = M[i][j-1][1]
-				right_idx = i+(2**(j-1))
-				right_val = M[right_idx][j-1][1]
-				M[i][j] = (i, left_val) if left_val <= right_val else (right_idx, right_val)
+				left_min = M[i][j-1]
+				right_min = M[i+(2**(j-1))][j-1]
+				M[i][j] = left_min if left_min[1] <= right_min[1] else right_min
 		return M
 
 
@@ -158,11 +159,13 @@ print("str: ", s)
 sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
 
-sa1.construct_lcp_array()
-print("lcp: ", sa1.lcp.array)
+lcp = sa1.construct_lcp_array()
+print("lcp: ", lcp.array)
 
-print(sa1.lcp.RMQ(3, 6))
+print(lcp.RMQ(4, 12))
 print(DataFrame(sa1.lcp.RMQ_matrix))
 
+child_intervals = lcp.get_child_intervals(0, len(lcp.array))
+print("Child intervals: ", child_intervals)
 
 
