@@ -147,7 +147,6 @@ class lcp_array:
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
 		isa = self.isa
-		print(sa, isa)
 		(_, L) = self.RMQ(i, j) # L is node depth in suffix tree
 		# Child intervals of interval [i,j)
 		child_intervals = self.get_child_intervals(i, j)
@@ -161,6 +160,30 @@ class lcp_array:
 					res.append(sa[r]) # position in x
 		return res
 
+
+	# TODO: Make a recursive funtion that finds ALL the child intervals
+	# (so also the child intervals of the child intervals, all the way down to the leaves (i, i+1))
+	# Then call this function in process instead of get_child_intervals
+	def run_process(self, i, j, res = None):
+		if res is None:
+			res = []
+		child_intervals = self.get_child_intervals(i, j)
+		res = res + child_intervals
+		for (ii, jj) in child_intervals:
+			if jj-ii > 1: # if not singleton interval / leaf in suffix tree
+				self.run_process(ii, jj, res)
+		return res
+
+	def old_run_process(self, i, j):
+		res = []
+		child_intervals = self.get_child_intervals(i, j)
+		res += child_intervals
+		for (ii, jj) in child_intervals:
+			if jj-ii > 1: # if not singleton interval / leaf in suffix tree
+				res += self.run_process(ii, jj)
+			else:
+				return (ii, jj)
+		return res
 
 
 ########################################################
@@ -182,5 +205,4 @@ print("lcp: ", lcp.array)
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
-print("Branding tandem repeats: ", lcp.process(0, 12))
-
+print("Branding tandem repeats: ", lcp.run_process(0, 12))
