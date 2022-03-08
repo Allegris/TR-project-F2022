@@ -82,10 +82,11 @@ class lcp_array:
 		# I.e. interval starting at pos L with length 2^j
 		# and interval starting at pos R - 2**j of length 2^j
 		# There may be an overlap in the two intervals, but this is OK, result will not change
-		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[R - (2**j)][j][1]:
+		right_idx = int(R - (2**j))
+		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[right_idx][j][1]:
 			return self.RMQ_matrix[L][j]
 		else:
-			return self.RMQ_matrix[R - (2**j)][j]
+			return self.RMQ_matrix[right_idx][j]
 
 
 	'''
