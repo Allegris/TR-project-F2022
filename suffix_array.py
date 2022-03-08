@@ -12,19 +12,9 @@ class suffix_array:
 		self.string = string #+ "$"
 		self.length = len(self.string)
 		self.array = skew.skew_rec(self.string)
-		self.isa = None
+		self.isa = {self.array[i]: i for i in range(self.length)}
 		self.lcp = None
 
-	'''
-	# OLD: Computes SA, but inefficiently
-	def construct_array(self):
-		self.array = [s[1] for s in sorted((self.string[i:], i) for i in range(self.length))]
-		return self.array
-	'''
-
-	# Constructs the inverse suffix array (for given suffix index, returns suffix rank)
-	def construct_isa(self):
-		return {self.array[i]: i for i in range(self.length)}
 
 	# Constructs the lcp array for this suffix array
 	# (i.e. prefix shared between entry in suffix array and previous entry)
@@ -39,7 +29,8 @@ class suffix_array:
 
 class lcp_array:
 	def __init__(self, sa):
-		self.sa = sa
+		self.sa = sa # Suffix array
+		self.isa = sa.isa # Inverse suffix array (contains ranks)
 		self.string = sa.string
 		self.length = sa.length
 		self.array = self.construct_lcp()
@@ -56,14 +47,12 @@ class lcp_array:
 	# Constructs lcp array from suffix array
 	def construct_lcp(self):
 		lcp = [None] * self.length
-		# Inverse suffix array (contains ranks)
-		isa = self.sa.construct_isa()
 
 		offset = 0
 		for i in range(self.length):
 			offset = max(0, offset - 1)
 			# ii <- rank of suffix at index i
-			ii = isa[i]
+			ii = self.isa[i]
 			# If suffix i is the first entry in suffix array, set lcp = 0
 			if ii == 0:
 				lcp[ii] = 0
@@ -146,6 +135,31 @@ class lcp_array:
 				M[i][j] = left_min if left_min[1] <= right_min[1] else right_min
 		return M
 
+	########################################################
+	# Finding branching tandem repeats
+	########################################################
+
+	'''
+	List of indices where we have tandem repeats
+	'''
+	def process(self, i, j):
+		res = []
+		# Suffix array and inverse suffix array
+		sa = self.sa.array
+		isa = self.isa
+		print(sa, isa)
+		(_, L) = self.RMQ(i, j) # L is node depth in suffix tree
+		# Child intervals of interval [i,j)
+		child_intervals = self.get_child_intervals(i, j)
+		# Run through child intervals
+		for (ii, jj) in child_intervals:
+			# Look at all the leaves in child interval
+			for q in range(ii, jj):
+				# Add node depth L to
+				r = isa[sa[q] + L]
+				if r in range(i, ii) or r in range(jj, j):
+					res.append(sa[r]) # position in x
+		return res
 
 
 
@@ -162,10 +176,11 @@ print("sa:  ", sa1.array)
 lcp = sa1.construct_lcp_array()
 print("lcp: ", lcp.array)
 
-print(lcp.RMQ(4, 12))
-print(DataFrame(sa1.lcp.RMQ_matrix))
+#print(lcp.RMQ(4, 12))
+#print(DataFrame(sa1.lcp.RMQ_matrix))
 
-child_intervals = lcp.get_child_intervals(0, len(lcp.array))
-print("Child intervals: ", child_intervals)
+#child_intervals = lcp.get_child_intervals(0, len(lcp.array))
+#print("Child intervals: ", child_intervals)
 
+print("Branding tandem repeats: ", lcp.process(0, 12))
 
