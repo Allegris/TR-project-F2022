@@ -139,7 +139,10 @@ class lcp_array:
 		while LL == L:
 			res.append((prev_i, ii))
 			prev_i = ii
-			(ii, LL) = self.RMQ(prev_i + 1, j)
+			if prev_i + 1 == j:
+				break
+			else:
+				(ii, LL) = self.RMQ(prev_i + 1, j)
 		res.append((prev_i, j))
 		return res
 
@@ -202,5 +205,5 @@ print("lcp: ", lcp.array)
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
-print(lcp.get_child_intervals(0,9))
+print("Child intervals: ", lcp.get_child_intervals(0,9))
 #print("Branding tandem repeats: ", lcp.run_process(0, 12))
