@@ -128,35 +128,99 @@ class lcp_array:
 
 
 	'''
-	Get child intervals for an L-lcp interval [i,j)
+	RMQ: Find (i, v[i]) for entire interval [i,j)
+
+	get_child_intervals:
+	get child_intervals for interval [i,j) where each (a, b) have lcp(a) = lcp(b) = L
+	Så if prev interval was (a,b) we do RMQ(b+1, j), because we don't want lcp(b) included,
+	since it says something about the previous block, and not the current
+	Stop when there are no more lcp = L in the list, and add last child (b, j)
+
+	child_intervals_rec:
+	for [i, j) find immediate child intervals - do not do [i+1, j), get_child_intervals should do this!!!
+
+
+	'''
+
+
+	'''
+	Get (direct) child intervals for an L-lcp interval [i,j)
 	'''
 	def get_child_intervals(self, i, j):
+		# Empty interval, eg. (5, 5)
+		if i + 1 > j:
+			return []
+		# Singleton interval, eg. (4, 5)
+		elif i + 1 == j:
+			return [(i, j)]
+		# Non-empty, non-singleton interval of length 2, eg. (3, 5)
+		elif i + 2 == j:
+			return [(i + 1, j)]
+		# Non-empty, non-singleton interval of length > 2, eg. (2, 5)
+		else:
+			res = []
+			(prev_i, L) = self.RMQ(i + 1, j) # L is min val in interval, ie. split point
+			res.append((i, prev_i)) # first interval (i.e. we split at index prev_i)
+			(ii, LL) = self.RMQ(prev_i + 1, j) # potential second split point
+			while LL == L: # If LL is in fact a split point
+				res.append((prev_i, ii)) # Add interval to list
+				prev_i = ii
+				if prev_i + 1 >= j: # If we have no more interval left
+					break
+				else:
+					(ii, LL) = self.RMQ(prev_i + 1, j)
+			res.append((prev_i, j))
+			return res
+
+	'''
+	Recursive funtion that finds ALL the child intervals
+	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
+	'''
+	def child_intervals_rec(self, i, j):
 		res = []
-		(prev_i, L) = self.RMQ(i, j)
-		if i != prev_i:
-			res.append((i, prev_i)) # first interval
-		(ii, LL) = self.RMQ(prev_i + 1, j)
-		while LL == L:
-			res.append((prev_i, ii))
-			prev_i = ii
-			if prev_i + 1 == j:
-				break
-			else:
-				(ii, LL) = self.RMQ(prev_i + 1, j)
-		res.append((prev_i, j))
+		child_intervals = self.get_child_intervals(i, j)
+		res += child_intervals
+		for (ii, jj) in child_intervals:
+			if jj - ii > 2:
+				res += self.child_intervals_rec(ii, jj)
 		return res
 
 	'''
-	List of indices where we have tandem repeats
+	Recursive funtion that finds ALL the child intervals
+	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
 	'''
-	def process(self, i, j):
+	def old_child_intervals_rec(self, i, j):
+		res = []
+		child_intervals = self.get_child_intervals(i, j)
+		res += child_intervals
+		for (ii, jj) in child_intervals:
+			res += self.child_intervals_rec(ii, jj)
+		return res
+
+
+	'''
+	def flatten(mylist):
+	  flatlist = []
+	  for element in mylist:
+	    if type(element) == list:
+	      flatlist += flatten(element)
+	    else:
+	      flatlist += element
+	  return flatlist
+	  '''
+
+
+	'''
+	Returns a list of indices where we have tandem repeats
+	'''
+	def find_tandem_repeats(self, i, j):
 		res = []
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
 		isa = self.isa
 		(_, L) = self.RMQ(i, j) # L is node depth in suffix tree
 		# Child intervals of interval [i,j)
-		child_intervals = self.get_child_intervals(i, j)
+		child_intervals = self.child_intervals_rec(i, j)
 		# Run through child intervals
 		for (ii, jj) in child_intervals:
 			# Look at all the leaves in child interval
@@ -168,22 +232,7 @@ class lcp_array:
 		return res
 
 
-	# TODO: This function should work, but get_child_intervals has an error:
-	# Eg. print(lcp.get_child_intervals(0,8)) works fine, but error for:
-	# print(lcp.get_child_intervals(0,9))
-	# TODO: Make a recursive funtion that finds ALL the child intervals
-	# (so also the child intervals of the child intervals, all the way down to the leaves (i, i+1))
-	# Then call this function in process instead of get_child_intervals
-	def run_process(self, i, j):
-		res = []
-		child_intervals = self.get_child_intervals(i, j)
-		res += child_intervals
-		for (ii, jj) in child_intervals:
-			if jj-ii > 1: # if not singleton interval / leaf in suffix tree
-				res += self.run_process(ii, jj)
-			else:
-				res += (ii, jj)
-		return res
+
 
 
 ########################################################
@@ -199,11 +248,14 @@ print("sa:  ", sa1.array)
 lcp = sa1.construct_lcp_array()
 print("lcp: ", lcp.array)
 
-#print(lcp.RMQ(4, 12))
+#print(lcp.RMQ(0, 12))
 #print(DataFrame(sa1.lcp.RMQ_matrix))
 
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
-print("Child intervals: ", lcp.get_child_intervals(0,9))
-#print("Branding tandem repeats: ", lcp.run_process(0, 12))
+#print("Child intervals: ", lcp.get_child_intervals(0, 9))
+print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
+#print("Branding tandem repeats: ", lcp.find_tandem_repeats(0, 12))
+
+
