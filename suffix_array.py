@@ -126,6 +126,23 @@ class lcp_array:
 	# Finding branching tandem repeats
 	########################################################
 
+	'''
+	Finds all tandem repeats in a string, given a list on branching tandem repeats by using left-rotations
+	Eg. if we have a branching TR at pos i+1 consisting of string w*a, then we can check if we also have a
+	tandem repeat by left rotation, i.e. by checking if the symbol string[i] == a.
+	'''
+	def find_all_tandem_repeats(string, branching_TRs):
+		res = []
+		for (idx, length) in branching_TRs:
+			i = idx - 1
+			while i >= 0:
+				btr_symbol = string[idx + length - 1]
+				if string[i] == btr_symbol:
+					res.append((i, length))
+				else:
+					break
+
+
 
 	'''
 	Finds all branching tandem repeats using the "smaller half trick" to get a
