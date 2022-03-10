@@ -188,9 +188,9 @@ class lcp_array:
 		return list(set(res)) # Remove potential duplicates - although it should not contain any
 
 	'''
-	Returns a list of indices where we have tandem repeats
+	Returns a list of string indices where we have a tandem repeat
 	'''
-	def find_tandem_repeats(self, i, j):
+	def old_find_tandem_repeats(self, i, j):
 		res = []
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
@@ -207,6 +207,37 @@ class lcp_array:
 				#if r in sa[i:ii] or r in sa[jj:j+1]: # TODO: j+1 or just j??
 				if r not in sa[ii:jj]:
 					res.append(sa[r]) # position in x
+		return list(set(res))
+
+	def old_process(self, i, j):
+		res = []
+		# Suffix array and inverse suffix array
+		sa = self.sa.array
+		isa = self.isa
+		(_, L) = self.RMQ(i+1, j) # L is node depth
+		child_intervals = self.child_intervals_rec(i, j)
+		for (ii, jj) in child_intervals:
+			for q in range(ii, jj):
+				r = isa[sa[q] + L]
+				if r not in sa[ii:jj]:
+					res.append(r)
+		return res
+
+	def find_tandem_repeats(self, i, j):
+		res = []
+		# Suffix array and inverse suffix array
+		sa = self.sa.array
+		isa = self.isa
+		child_intervals = self.child_intervals_rec(i, j)
+		inner_nodes = [(i, j) for (i, j) in child_intervals if j - i > 1]
+		for (ii, jj) in inner_nodes:
+			# L is the shared node depth for all children in this child interval/subtree:
+			(_, L) = self.RMQ(ii+1, jj)
+			for q in range(ii, jj):
+				r = isa[sa[q] + L]
+				#if r not in sa[ii:jj]:
+				if r in range (i, ii) or r in range(jj, j):
+					res.append((sa[r], L))
 		return list(set(res))
 
 
