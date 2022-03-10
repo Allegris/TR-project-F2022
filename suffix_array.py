@@ -185,32 +185,7 @@ class lcp_array:
 			for (ii, jj) in child_intervals:
 				if jj-ii > 1: # if non-empty, non-singleton interval
 					res += self.child_intervals_rec(ii, jj)
-		return list(set(res))
-
-	'''
-	Recursive funtion that finds ALL the child intervals
-	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
-	'''
-	def old_child_intervals_rec(self, i, j):
-		res = []
-		child_intervals = self.get_child_intervals(i, j)
-		res += child_intervals
-		for (ii, jj) in child_intervals:
-			res += self.child_intervals_rec(ii, jj)
-		return res
-
-
-	'''
-	def flatten(mylist):
-	  flatlist = []
-	  for element in mylist:
-	    if type(element) == list:
-	      flatlist += flatten(element)
-	    else:
-	      flatlist += element
-	  return flatlist
-	  '''
-
+		return list(set(res)) # Remove potential duplicates - although it should not contain any
 
 	'''
 	Returns a list of indices where we have tandem repeats
@@ -220,7 +195,7 @@ class lcp_array:
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
 		isa = self.isa
-		(_, L) = self.RMQ(i, j) # L is node depth in suffix tree
+		(_, L) = self.RMQ(i+1, j) # L is node depth in suffix tree # TODO: i+1 or just i??
 		# Child intervals of interval [i,j)
 		child_intervals = self.child_intervals_rec(i, j)
 		# Run through child intervals
@@ -229,9 +204,10 @@ class lcp_array:
 			for q in range(ii, jj):
 				# Add node depth L to
 				r = isa[sa[q] + L]
-				if r in range(i, ii) or r in range(jj, j):
+				#if r in sa[i:ii] or r in sa[jj:j+1]: # TODO: j+1 or just j??
+				if r not in sa[ii:jj]:
 					res.append(sa[r]) # position in x
-		return res
+		return list(set(res))
 
 
 
@@ -250,14 +226,14 @@ print("sa:  ", sa1.array)
 lcp = sa1.construct_lcp_array()
 print("lcp: ", lcp.array)
 
-print(lcp.RMQ(0, 12))
-print(DataFrame(sa1.lcp.RMQ_matrix))
+#print(lcp.RMQ(0, 12))
+#print(DataFrame(sa1.lcp.RMQ_matrix))
 
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
 #print("Child intervals: ", lcp.get_child_intervals(0, 9))
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
-#print("Branding tandem repeats: ", lcp.find_tandem_repeats(0, 12))
+print("Branding tandem repeats: ", lcp.find_tandem_repeats(0, 12))
 
 
