@@ -148,14 +148,15 @@ class lcp_array:
 	'''
 	def get_child_intervals(self, i, j):
 		# Empty interval, eg. (5, 5)
-		if i + 1 > j:
+		if i == j:
 			return []
 		# Singleton interval, eg. (4, 5)
 		elif i + 1 == j:
 			return [(i, j)]
 		# Non-empty, non-singleton interval of length 2, eg. (3, 5)
+		# => We want both (3, 4) and (4, 5) as child intervals
 		elif i + 2 == j:
-			return [(i + 1, j)]
+			return [(i, i + 1), (i + 1, j)]
 		# Non-empty, non-singleton interval of length > 2, eg. (2, 5)
 		else:
 			res = []
@@ -180,10 +181,11 @@ class lcp_array:
 		res = []
 		child_intervals = self.get_child_intervals(i, j)
 		res += child_intervals
-		for (ii, jj) in child_intervals:
-			if jj - ii > 2:
-				res += self.child_intervals_rec(ii, jj)
-		return res
+		if len(child_intervals) > 1:
+			for (ii, jj) in child_intervals:
+				if jj-ii > 1: # if non-empty, non-singleton interval
+					res += self.child_intervals_rec(ii, jj)
+		return list(set(res))
 
 	'''
 	Recursive funtion that finds ALL the child intervals
@@ -248,14 +250,14 @@ print("sa:  ", sa1.array)
 lcp = sa1.construct_lcp_array()
 print("lcp: ", lcp.array)
 
-#print(lcp.RMQ(0, 12))
-#print(DataFrame(sa1.lcp.RMQ_matrix))
+print(lcp.RMQ(0, 12))
+print(DataFrame(sa1.lcp.RMQ_matrix))
 
 #child_intervals = lcp.get_child_intervals(0, len(lcp.array))
 #print("Child intervals: ", child_intervals)
 
 #print("Child intervals: ", lcp.get_child_intervals(0, 9))
-print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
+#print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
 #print("Branding tandem repeats: ", lcp.find_tandem_repeats(0, 12))
 
 
