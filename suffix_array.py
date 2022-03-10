@@ -121,21 +121,11 @@ class lcp_array:
 				M[i][j] = left_min if left_min[1] <= right_min[1] else right_min
 		return M
 
+
 	########################################################
 	# Finding branching tandem repeats
 	########################################################
 
-	'''
-	Returns the widest interval (i, j) from a list of intervals
-	'''
-	def widest(self, intervals):
-		max_size = 0
-		max_interval = (None, None)
-		for (i, j) in intervals:
-			if j - i > max_size:
-				max_size = j - i
-				max_interval = (i, j)
-		return max_interval
 
 	'''
 	Finds all branching tandem repeats using the "smaller half trick" to get a
@@ -179,6 +169,19 @@ class lcp_array:
 					if r in range(w_i, w_j):
 						res.append((sa[r], L))
 		return list(set(res)) # remove duplicates
+
+	'''
+	Returns the widest interval (i, j) from a list of intervals
+	'''
+	def widest(self, intervals):
+		max_size = 0
+		max_interval = (None, None)
+		for (i, j) in intervals:
+			if j - i > max_size:
+				max_size = j - i
+				max_interval = (i, j)
+		return max_interval
+
 
 	'''
 	Finds all branching tandem repeats in running time O(n^2) for a string of length n
