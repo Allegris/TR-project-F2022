@@ -1,7 +1,6 @@
 
 import skew
 import sys
-#sys.setrecursionlimit(10000) # TODO: remove
 from pandas import *
 
 ########################################################
@@ -128,19 +127,49 @@ class lcp_array:
 
 
 	'''
-	RMQ: Find (i, v[i]) for entire interval [i,j)
-
-	get_child_intervals:
-	get child_intervals for interval [i,j) where each (a, b) have lcp(a) = lcp(b) = L
-	Så if prev interval was (a,b) we do RMQ(b+1, j), because we don't want lcp(b) included,
-	since it says something about the previous block, and not the current
-	Stop when there are no more lcp = L in the list, and add last child (b, j)
-
-	child_intervals_rec:
-	for [i, j) find immediate child intervals - do not do [i+1, j), get_child_intervals should do this!!!
+	Returns all branching tandem repeats in a list [(string_idx, L)]
+	Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
+	'''
+	def branching_TR(self, i, j):
+		res = []
+		# Suffix array and inverse suffix array
+		sa = self.sa.array
+		isa = self.isa
+		# All inner nodes in suffix tree
+		inner_nodes = [(i, j) for (i, j) in self.child_intervals_rec(i, j) if j - i > 1]
+		# For each inner node v, check if each leaf below is a tandem repeat:
+		# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
+		# but in a different subtree than leaf.
+		for (node_i, node_j) in inner_nodes:
+			child_intervals = self.child_intervals_rec(node_i, node_j)
+			# L is the shared node depth for all children in this subtree (i.e. child interval):
+			(_, L) = self.RMQ(node_i+1, node_j)
+			# Run through each subtree
+			for (ii, jj) in child_intervals:
+				# Run through each leaf in subtree
+				for q in range(ii, jj):
+					# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
+					r = isa[sa[q] + L]
+					# If "Leaf sa[q]+L" is in a different subtree
+					# than "leaf sa[q]", then we have a branching TR:
+					if r in range(node_i, ii) or r in range(jj, node_j):
+						res.append((sa[r], L))
+		return list(set(res)) # remove duplicates
 
 
 	'''
+	Recursive funtion that finds ALL the child intervals
+	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
+	'''
+	def child_intervals_rec(self, i, j):
+		res = []
+		child_intervals = self.get_child_intervals(i, j)
+		res += child_intervals
+		if len(child_intervals) > 1:
+			for (ii, jj) in child_intervals:
+				if jj-ii > 1: # if non-empty, non-singleton interval
+					res += self.child_intervals_rec(ii, jj)
+		return list(set(res)) # remove duplicates
 
 
 	'''
@@ -173,75 +202,6 @@ class lcp_array:
 			res.append((prev_i, j))
 			return res
 
-	'''
-	Recursive funtion that finds ALL the child intervals
-	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
-	'''
-	def child_intervals_rec(self, i, j):
-		res = []
-		child_intervals = self.get_child_intervals(i, j)
-		res += child_intervals
-		if len(child_intervals) > 1:
-			for (ii, jj) in child_intervals:
-				if jj-ii > 1: # if non-empty, non-singleton interval
-					res += self.child_intervals_rec(ii, jj)
-		return list(set(res)) # Remove potential duplicates - although it should not contain any
-
-	'''
-	Returns a list of string indices where we have a tandem repeat
-	'''
-	def old_find_tandem_repeats(self, i, j):
-		res = []
-		# Suffix array and inverse suffix array
-		sa = self.sa.array
-		isa = self.isa
-		(_, L) = self.RMQ(i+1, j) # L is node depth in suffix tree # TODO: i+1 or just i??
-		# Child intervals of interval [i,j)
-		child_intervals = self.child_intervals_rec(i, j)
-		# Run through child intervals
-		for (ii, jj) in child_intervals:
-			# Look at all the leaves in child interval
-			for q in range(ii, jj):
-				# Add node depth L to
-				r = isa[sa[q] + L]
-				#if r in sa[i:ii] or r in sa[jj:j+1]: # TODO: j+1 or just j??
-				if r not in sa[ii:jj]:
-					res.append(sa[r]) # position in x
-		return list(set(res))
-
-	def old_process(self, i, j):
-		res = []
-		# Suffix array and inverse suffix array
-		sa = self.sa.array
-		isa = self.isa
-		(_, L) = self.RMQ(i+1, j) # L is node depth
-		child_intervals = self.child_intervals_rec(i, j)
-		for (ii, jj) in child_intervals:
-			for q in range(ii, jj):
-				r = isa[sa[q] + L]
-				if r not in sa[ii:jj]:
-					res.append(r)
-		return res
-
-	def find_tandem_repeats(self, i, j):
-		res = []
-		# Suffix array and inverse suffix array
-		sa = self.sa.array
-		isa = self.isa
-		child_intervals = self.child_intervals_rec(i, j)
-		inner_nodes = [(i, j) for (i, j) in child_intervals if j - i > 1]
-		for (ii, jj) in inner_nodes:
-			# L is the shared node depth for all children in this child interval/subtree:
-			(_, L) = self.RMQ(ii+1, jj)
-			for q in range(ii, jj):
-				r = isa[sa[q] + L]
-				#if r not in sa[ii:jj]:
-				if r in range (i, ii) or r in range(jj, j):
-					res.append((sa[r], L))
-		return list(set(res))
-
-
-
 
 
 ########################################################
@@ -265,6 +225,6 @@ print("lcp: ", lcp.array)
 
 #print("Child intervals: ", lcp.get_child_intervals(0, 9))
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
-print("Branding tandem repeats: ", lcp.find_tandem_repeats(0, 12))
+print("Branding tandem repeats: ", lcp.branching_TR(0, 12))
 
 
