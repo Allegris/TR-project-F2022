@@ -138,7 +138,8 @@ class lcp_array:
 			last_symbol = string[idx + length - 1]
 			if string[idx - 1] == last_symbol:
 				res.append((idx - 1, length))
-		return res
+				stack.append((idx - 1, length))
+		return list(set(res)) # Remove duplicates
 
 	'''
 	Finds all branching tandem repeats using the "smaller half trick" to get a
@@ -146,13 +147,13 @@ class lcp_array:
 	Returns all branching tandem repeats in a list [(string_idx, L)]
 	Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
 	'''
-	def branching_TR_smaller_half(self, i, j):
+	def branching_TR_smaller_half(self, string):
 		res = []
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
 		isa = self.isa
 		# All inner nodes in suffix tree
-		inner_nodes = [(i, j) for (i, j) in self.child_intervals_rec(i, j) if j - i > 1]
+		inner_nodes = [(a, b) for (a, b) in self.child_intervals_rec(0, len(string)) if b - a > 1]
 		# For each inner node v, check if each leaf below is a tandem repeat:
 		# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
 		# but in a different subtree than leaf.
@@ -170,17 +171,19 @@ class lcp_array:
 				for q in range(ii, jj):
 					# *** Check to the right ***
 					# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
-					r = isa[sa[q] + L]
-					# If "leaf sa[q]+L" is in a different subtree
-					# than "leaf sa[q]", then we have a branching TR:
-					if r in range(node_i, ii) or r in range(jj, node_j):
-						res.append((sa[q], L))
+					if sa[q] + L in range(0, len(string)):
+						r = isa[sa[q] + L]
+						# If "leaf sa[q]+L" is in a different subtree
+						# than "leaf sa[q]", then we have a branching TR:
+						if r in range(node_i, ii) or r in range(jj, node_j):
+							res.append((sa[q], L))
 					# *** Check to the left (widest subtree) ***
-					r = isa[sa[q] - L]
-					# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
-					# since we don't run through the widest subtree, so we add it here
-					if r in range(w_i, w_j):
-						res.append((sa[r], L))
+					if sa[q] - L in range(0, len(string)):
+						r = isa[sa[q] - L]
+						# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
+						# since we don't run through the widest subtree, so we add it here
+						if r in range(w_i, w_j):
+							res.append((sa[r], L))
 		return list(set(res)) # remove duplicates
 
 	'''
@@ -201,13 +204,13 @@ class lcp_array:
 	Returns all branching tandem repeats in a list [(string_idx, L)]
 	Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
 	'''
-	def branching_TR(self, i, j):
+	def branching_TR(self, string):
 		res = []
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
 		isa = self.isa
 		# All inner nodes in suffix tree
-		inner_nodes = [(i, j) for (i, j) in self.child_intervals_rec(i, j) if j - i > 1]
+		inner_nodes = [(i, j) for (i, j) in self.child_intervals_rec(0, len(string)) if j - i > 1]
 		# For each inner node v, check if each leaf below is a tandem repeat:
 		# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
 		# but in a different subtree than leaf.
@@ -273,14 +276,20 @@ class lcp_array:
 			res.append((prev_i, j))
 			return res
 
-
+	def print_TRs(self, string, TRs):
+		for tr in TRs:
+			first_end =  tr[0] + tr[1]
+			print("Idx", tr[0], ": ", string[tr[0]: first_end], ",", string[first_end:first_end + tr[1]] + "\n")
 
 ########################################################
 # TEST CODE
 ########################################################
 
-s = "mississippi$"
+#s = "mississippi$"
+s = "abcabcabc$"
 print("str: ", s)
+
+len_str = len(s)
 
 sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
@@ -292,10 +301,11 @@ print("lcp: ", lcp.array)
 #print(DataFrame(sa1.lcp.RMQ_matrix))
 
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
-print("Branding tandem repeats: ", lcp.branching_TR(0, 12))
-branching_TRs = lcp.branching_TR_smaller_half(0, 12)
-print("Branding tandem repeats SMALLER HALF: ", branching_TRs)
-print("All tandem repeats: ", lcp.find_all_tandem_repeats(s, branching_TRs))
-
+print("Branching tandem repeats: ", lcp.branching_TR(s))
+branching_TRs = lcp.branching_TR_smaller_half(s)
+print("Branching tandem repeats SMALLER HALF: ", branching_TRs)
+#print("All tandem repeats: ", lcp.find_all_tandem_repeats(s, branching_TRs))
+TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
+lcp.print_TRs(s, TRs)
 
 
