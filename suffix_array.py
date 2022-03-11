@@ -1,6 +1,5 @@
 
 import skew
-import sys
 from pandas import *
 
 ########################################################
@@ -131,18 +130,15 @@ class lcp_array:
 	Eg. if we have a branching TR at pos i+1 consisting of string w*a, then we can check if we also have a
 	tandem repeat by left rotation, i.e. by checking if the symbol string[i] == a.
 	'''
-	def find_all_tandem_repeats(string, branching_TRs):
-		res = []
-		for (idx, length) in branching_TRs:
-			i = idx - 1
-			while i >= 0:
-				btr_symbol = string[idx + length - 1]
-				if string[i] == btr_symbol:
-					res.append((i, length))
-				else:
-					break
-
-
+	def find_all_tandem_repeats(self, string, branching_TRs):
+		res = branching_TRs.copy()
+		stack = branching_TRs.copy()
+		while len(stack) > 0:
+			(idx, length) = stack.pop()
+			last_symbol = string[idx + length - 1]
+			if string[idx - 1] == last_symbol:
+				res.append((idx - 1, length))
+		return res
 
 	'''
 	Finds all branching tandem repeats using the "smaller half trick" to get a
@@ -290,19 +286,16 @@ sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
 
 lcp = sa1.construct_lcp_array()
-print("lcp: ", lcp.array)
 
+print("lcp: ", lcp.array)
 #print(lcp.RMQ(0, 12))
 #print(DataFrame(sa1.lcp.RMQ_matrix))
 
-#child_intervals = lcp.get_child_intervals(0, len(lcp.array))
-#print("Child intervals: ", child_intervals)
-
-#print("Child intervals: ", lcp.get_child_intervals(0, 9))
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
 print("Branding tandem repeats: ", lcp.branching_TR(0, 12))
-print("Branding tandem repeats SMALLER HALF: ", lcp.branching_TR_smaller_half(0, 12))
-
+branching_TRs = lcp.branching_TR_smaller_half(0, 12)
+print("Branding tandem repeats SMALLER HALF: ", branching_TRs)
+print("All tandem repeats: ", lcp.find_all_tandem_repeats(s, branching_TRs))
 
 
 
