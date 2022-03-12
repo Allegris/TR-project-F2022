@@ -222,12 +222,13 @@ class lcp_array:
 			for (ii, jj) in child_intervals:
 				# Run through each leaf in subtree
 				for q in range(ii, jj):
-					# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
-					r = isa[sa[q] + L]
-					# If "Leaf sa[q]+L" is in a different subtree
-					# than "leaf sa[q]", then we have a branching TR:
-					if r in range(node_i, ii) or r in range(jj, node_j):
-						res.append((sa[q], L))
+					if sa[q] + L in range(0, len(string)):
+						# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
+						r = isa[sa[q] + L]
+						# If "Leaf sa[q]+L" is in a different subtree
+						# than "leaf sa[q]", then we have a branching TR:
+						if r in range(node_i, ii) or r in range(jj, node_j):
+							res.append((sa[q], L))
 		return list(set(res)) # remove duplicates
 
 
@@ -277,16 +278,24 @@ class lcp_array:
 			return res
 
 	def print_TRs(self, string, TRs):
+		print("**********************")
+		print("TANDEM REPEATS:")
 		for tr in TRs:
 			first_end =  tr[0] + tr[1]
-			print("Idx", tr[0], ": ", string[tr[0]: first_end], ",", string[first_end:first_end + tr[1]] + "\n")
+			if tr[1] <= 20:
+				print("Idx", tr[0], ": ", string[tr[0]: first_end], ",", string[first_end:first_end + tr[1]])
+			else:
+				print("Idx", tr[0], ": repeat of length", tr[1])
+		print("**********************")
 
 ########################################################
 # TEST CODE
 ########################################################
 
 #s = "mississippi$"
-s = "abcabcabc$"
+#s = "abcabcabc$"
+#s = "banana"
+s = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 print("str: ", s)
 
 len_str = len(s)
@@ -305,7 +314,9 @@ print("Branching tandem repeats: ", lcp.branching_TR(s))
 branching_TRs = lcp.branching_TR_smaller_half(s)
 print("Branching tandem repeats SMALLER HALF: ", branching_TRs)
 #print("All tandem repeats: ", lcp.find_all_tandem_repeats(s, branching_TRs))
+
 TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
+print("Tandem repeats: ", TRs)
 lcp.print_TRs(s, TRs)
 
 
