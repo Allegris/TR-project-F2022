@@ -13,11 +13,15 @@ SENTINEL_central = "#"
 Returns the suffix array of a string
 '''
 def skew_rec(string):
+	print("string: ", string)
 	### STEP 1: COMPUTE SA_12 ###
 	sa_12 = compute_sa_12(string)
+	print("sa_12:", sa_12)
 	alphabet = get_alphabet(string, sa_12)
+	print("**********ALFA: ", alphabet)
 	# If all unique in sa_12, don't recurse
 	# If the two have equal length, then we have a duplicate in sa_12, because alphabet contains sentinel
+	# TODO: was >=, but > not it does not fail, but does still not give correct result
 	if len(sa_12) >= len(alphabet):
 		# Compute u string and recurse to find its suffix array
 		u = construct_u(string, alphabet)
@@ -40,6 +44,9 @@ def skew_rec(string):
 	sa_3 = bucket_sort_first_char(string, sa_3) # OLD: Works, but O(n*lg n) # sa_3 = sorted(sa_3, key = lambda i : safe_get_char(string, i)[:1])
 
 	### STEP 3: MERGE SA_12 and SA_3 into the final suffix array ###
+	#print("sa_12: ", sa_12)
+	#print("sa_3: ", sa_3)
+	print("full sa: ", merge(string, sa_12, sa_3))
 	return merge(string, sa_12, sa_3)
 
 
@@ -56,9 +63,12 @@ def compute_sa_12(string):
 			triplet = get_triplet(string, i) # Triplet of form ("A", "B", "A")
 			triplets_12.append((i,) + triplet) # Add idx to triplet: (idx, "A", "B", "A")
 	# Sort the triplets (using stable bucket sort)
+	#print("Unsorted triplets: ", triplets_12)
 	triplets_12 = radix_3(string, triplets_12) # OLD: Works, but O(n*lg n) # triplets_12 = sorted(tuple(triplets_12), key = lambda tup: (tup[1], tup[2], tup[3]))
+	#print("sorted triplets", triplets_12)
 	# Extract the suffix indices
 	sa_12 = [t[0] for t in triplets_12] # Use only the idx from triplets of form (idx, "A", "B", "A") in sa_12
+	#print("sa_12:", sa_12)
 	return sa_12
 
 '''
@@ -122,9 +132,9 @@ def get_alphabet(string, indices):
 	return alphabet
 
 
-# Construct the u-string used by Skew Algo
+# Construct the u-string used by Skew Algorithm
 # The u string consists of:
-# Lex names for i mod 3 = 1, CENTRAL SENTINEL, lex names for i mod 3 = 2
+# Lex names for i mod 3 = 1, CENTRAL SENTINEL (#), lex names for i mod 3 = 2
 def construct_u(string, alphabet):
 	u = ""
 	# Lex names for i mod 3 = 1
@@ -139,12 +149,13 @@ def construct_u(string, alphabet):
 
 
 # Maps indices in u back to indices in the original input string
+# m = len(u) // 2, the position of the central sentinel (#)
 def map_u_to_string_index(i, m):
 	# Left of the central sentinel
 	if i < m:
 		return 1 + 3 * i
 	# Right of the central sentinel
-	else:
+	elif i > m:
 		return 2 + 3 * (i - m - 1)
 
 
@@ -210,7 +221,8 @@ def bucket_sort_first_char(string, suffix_indices):
 ########################################################
 
 
-s = "mississippi$"
+#s = "mississippi$"
+s = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$"
 print(skew_rec(s))
 
 

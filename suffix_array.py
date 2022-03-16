@@ -46,8 +46,9 @@ class lcp_array:
 	# Constructs lcp array from suffix array
 	def construct_lcp(self):
 		lcp = [None] * self.length
-
 		offset = 0
+		isa = self.isa
+		sa = self.sa.array
 		for i in range(self.length):
 			offset = max(0, offset - 1)
 			# ii <- rank of suffix at index i
@@ -295,10 +296,13 @@ class lcp_array:
 #s = "mississippi$"
 #s = "abcabcabc$"
 #s = "banana"
-s = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+s = "aaaaa$"
+#s = "abababaccccccccccccccccaaaaaaabeaa$"
+
 print("str: ", s)
 
 len_str = len(s)
+print(len_str)
 
 sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
