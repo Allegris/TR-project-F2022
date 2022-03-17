@@ -24,6 +24,9 @@ class suffix_array:
 		self.lcp = lcp_array(self)
 		return self.lcp
 
+	def slow_SA(self):
+		return [s[1] for s in sorted((self.string[i:],i) for i in range(self.length))]
+
 
 ########################################################
 # Class representing an lcp array for a string
@@ -79,12 +82,14 @@ class lcp_array:
 	'''
 	def RMQ(self, L, R):
 		interval = self.array[L:R] # The interval to do RMQ on
+		print("LR", L, R)
 		j = len(interval).bit_length() - 1 # log(interval_len) floor
 		# Min of left and right interval of exponents 2^j
 		# I.e. interval starting at pos L with length 2^j
 		# and interval starting at pos R - 2**j of length 2^j
 		# There may be an overlap in the two intervals, but this is OK, result will not change
 		right_idx = int(R - (2**j))
+		print("L, right_idx, j", L, right_idx, j)
 		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[right_idx][j][1]:
 			return self.RMQ_matrix[L][j]
 		else:
@@ -166,7 +171,7 @@ class lcp_array:
 			# The widest subtree/interval
 			(w_i, w_j) = self.widest(child_intervals)
 			# L is the shared node depth for all children in this subtree (i.e. child interval):
-			(_, L) = self.RMQ(node_i+1, node_j)
+			(_, L) = self.RMQ(node_i + 1, node_j)
 			# Run through each subtree, EXCEPT THE WIDEST SUBTREE
 			for (ii, jj) in child_intervals:
 				if (ii, jj) == (w_i, w_j):
@@ -221,7 +226,7 @@ class lcp_array:
 		for (node_i, node_j) in inner_nodes:
 			child_intervals = self.child_intervals_rec(node_i, node_j)
 			# L is the shared node depth for all children in this subtree (i.e. child interval):
-			(_, L) = self.RMQ(node_i+1, node_j)
+			(_, L) = self.RMQ(node_i + 1, node_j)
 			# Run through each subtree
 			for (ii, jj) in child_intervals:
 				# Run through each leaf in subtree
@@ -270,14 +275,16 @@ class lcp_array:
 			res = []
 			(prev_i, L) = self.RMQ(i + 1, j) # L is min val in interval, ie. split point
 			res.append((i, prev_i)) # first interval (i.e. we split at index prev_i)
-			(ii, LL) = self.RMQ(prev_i + 1, j) # potential second split point
-			while LL == L: # If LL is in fact a split point
-				res.append((prev_i, ii)) # Add interval to list
-				prev_i = ii
-				if prev_i + 1 >= j: # If we have no more interval left
-					break
-				else:
-					(ii, LL) = self.RMQ(prev_i + 1, j)
+			print("RES", res)
+			if prev_i + 1 < j:
+				(ii, LL) = self.RMQ(prev_i + 1, j) # potential second split point
+				while LL == L: # If LL is in fact a split point
+					res.append((prev_i, ii)) # Add interval to list
+					prev_i = ii
+					if prev_i + 1 >= j: # If we have no more interval left
+						break
+					else:
+						(ii, LL) = self.RMQ(prev_i + 1, j)
 			res.append((prev_i, j))
 			return res
 
@@ -292,6 +299,8 @@ class lcp_array:
 				print("Idx", tr[0], ": repeat of length", tr[1])
 		print("**********************")
 
+
+
 ########################################################
 # TEST CODE
 ########################################################
@@ -301,26 +310,24 @@ class lcp_array:
 #s = "banana0"
 #s = "aaaaa0"
 s = "abababaccccccccccccccccaaaaaaabeaa0"
+#s = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
 
-print("str: ", s)
-
-len_str = len(s)
-print(len_str)
+print("str of len", len(s), ":", s)
 
 sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
+print("slow sa: ", sa1.slow_SA())
 
 lcp = sa1.construct_lcp_array()
-
 print("lcp: ", lcp.array)
+
 #print(lcp.RMQ(0, 12))
 #print(DataFrame(sa1.lcp.RMQ_matrix))
 
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
 print("Branching tandem repeats: ", lcp.branching_TR(s))
 branching_TRs = lcp.branching_TR_smaller_half(s)
-print("Branching tandem repeats SMALLER HALF: ", branching_TRs)
-#print("All tandem repeats: ", lcp.find_all_tandem_repeats(s, branching_TRs))
+print("SMALLER HALF TRICK Branching tandem repeats: ", branching_TRs)
 
 TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
 print("Tandem repeats: ", TRs)

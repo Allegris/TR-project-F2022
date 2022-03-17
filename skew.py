@@ -35,20 +35,15 @@ def skew_rec(x, alpha_size):
 	sa_12 = compute_sa_12(x, alpha_size)
 	# Alphabet dict, {triplet: lex-name}
 	new_alphabet = get_triplet_alphabet(x, sa_12)
-	print(x, "new alfa", new_alphabet)
 
 	# If we have ducplicate(s) in sa_12, recurse:
 	if len(sa_12) > len(new_alphabet):
 		# Compute u string and recurse to find its suffix array
 		u = construct_u(x, new_alphabet)
 		sa_u = skew_rec(u, len(new_alphabet))
-		#print(x, "UUU", u)
-		#print(x, "sa_u:", sa_u)
 		# m is where suffixes mod 1 and mod 2 separate in u
 		m = (len(sa_u) + 1) // 2
-		#print(x, "sa_12 before", sa_12)
 		sa_12 = [map_u_to_string_index(i, m) for i in sa_u]
-		#print(x, "sa_12 after", sa_12)
 
 	### STEP 2: COMPUTE SA_3 from SA_12 ###
 	sa_3 = []
@@ -61,9 +56,6 @@ def skew_rec(x, alpha_size):
 	sa_3 += [i - 1 for i in sa_12 if i % 3 == 1]
 	# Stable sort on first character
 	sa_3 = bucket_sort_first_char(x, sa_3, alpha_size) # OLD: Works, but O(n*lg n) # sa_3 = sorted(sa_3, key = lambda i : safe_get_char(string, i)[:1])
-	print("SA_12: ", x, sa_12)
-	print("SA_3: ", x, sa_3)
-	print("MERGED: ", x, merge(x, sa_12, sa_3))
 	### STEP 3: MERGE SA_12 and SA_3 into the final suffix array ###
 	return merge(x, sa_12, sa_3)
 
@@ -117,7 +109,6 @@ MERGES SA_12 and SA_3 into the final suffix array
 def merge(x, sa_12, sa_3):
 	# Create inverse suffix array for sa_12 (contains sa-ranks for given x idx)
     isa_12 = {sa_12[i]: i for i in range(len(sa_12))}
-    print("ISA:", isa_12)
     sa = []
 	# Let i be an index into sa_12 and j be an index into sa_3
     i = j = 0
@@ -234,11 +225,13 @@ def bucket_sort_first_char(x, suffix_indices, alpha_size):
 ########################################################
 # TEST CODE
 ########################################################
+'''
 
 #string = "ACGTAA0"
 string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
 string = "mississippi0"
 string = "ABCABC0"
+string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
 #print(string)
 alpha, ints = map_string_to_ints(string)
 print(ints) # <-- ints is our "input string" to skew_rec
@@ -251,5 +244,5 @@ print("SA:", sa)
 for s in sa:
 	print(string[s:])
 
-
+'''
 
