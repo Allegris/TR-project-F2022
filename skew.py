@@ -5,30 +5,15 @@ SENTINEL = 0
 # SKEW ALGORITHM without central sentinel - COMPUTE SUFFIX ARRAY IN TIME O(N)
 ################################################################################
 
-
 '''
-Returns a mapping between numbers and letter, eg. {1: "A", 2: "C", 3: "G", 4: "T"}, 0 is reserved for the sentinel
-and a list of the string, eg. for "ACGT" we get [1, 2, 3, 4]
-'''
-def map_string_to_ints(string):
-	letters = ''.join(set(string))
-	letters = sorted(letters)
-	num = 0
-	num_to_letter_dict = {}
-	letter_to_num_dict = {}
-	for letter in letters:
-		num_to_letter_dict[num] = letter
-		letter_to_num_dict[letter] = num
-		num += 1
-	num_ls = []
-	for s in string:
-		num_ls.append(letter_to_num_dict[s])
-	return num_to_letter_dict, num_ls
+Computes the suffix array for a string in time O(n)
 
+Input is a list of integers:
+Our input is indirectly the string, e.g. "ACGTAA0", but in the form of a integer list,
+as we get from "map_string_to_ints(string)[1]", e.g. "[1, 2, 3, 4, 1, 1, 0]"
+Remember to add the sentinel, 0, to the input
 
-'''
-Here, our input is the string, eg. "ACGTAA", but in the form of a integer list,
-as we get from "map_string_to_ints(string)[1]"
+Returns the suffix array as a sorted list of indices into the string
 '''
 def skew_rec(x, alpha_size):
 	### STEP 1: COMPUTE SA_12 ###
@@ -47,7 +32,8 @@ def skew_rec(x, alpha_size):
 
 	### STEP 2: COMPUTE SA_3 from SA_12 ###
 	sa_3 = []
-	# Special case: if last index in string is 0 mod 3, then this suffix should be first in sa_3, since it is the shortest suffix
+	# Special case: if last index in string is 0 mod 3,
+	# then this suffix should be first in sa_3, since it is the shortest suffix
 	# It will be sorted based on the first (and in this case only) character afterwards
 	if len(x) % 3 == 1:
 		sa_3.append(len(x) - 1)
@@ -55,7 +41,8 @@ def skew_rec(x, alpha_size):
 	# Use the order found in sa_12, and then stable sort on the first character afterwards
 	sa_3 += [i - 1 for i in sa_12 if i % 3 == 1]
 	# Stable sort on first character
-	sa_3 = bucket_sort_first_char(x, sa_3, alpha_size) # OLD: Works, but O(n*lg n) # sa_3 = sorted(sa_3, key = lambda i : safe_get_char(string, i)[:1])
+	sa_3 = bucket_sort_first_char(x, sa_3, alpha_size)
+
 	### STEP 3: MERGE SA_12 and SA_3 into the final suffix array ###
 	return merge(x, sa_12, sa_3)
 
@@ -66,9 +53,8 @@ def skew_rec(x, alpha_size):
 ################################################################################
 
 '''
-COMPUTES SA_12
+Computes SA_12, i.e. the suffix array for the suffixes starting at indices != 0 mod 3
 '''
-# Computes the suffix array for the suffixes starting at indices != 0 mod 3
 def compute_sa_12(x, alpha_size):
 	triplets_12 = []
 	# Create triplets for all indices != 0 mod 3 in the string
@@ -84,9 +70,12 @@ def compute_sa_12(x, alpha_size):
 	return sa_12
 
 
-# Construct the u-string used by Skew Algorithm
-# The u string consists of:
-# Lex-names for i mod 3 = 1, SENTINEL (0), lex-names for i mod 3 = 2
+'''
+Constructs the u-string (as an integer list)
+The u string consists of:
+Lex-names for i mod 3 = 1, lex-names for i mod 3 = 2
+We do NOT add a central (#) sentinel, since it is superfluous when we use a terminal sentinel (0)
+'''
 def construct_u(x, alphabet):
 	u = []
 	# Lex names for i mod 3 = 1
@@ -99,12 +88,15 @@ def construct_u(x, alphabet):
 		u.append(alphabet[get_triplet(x, i)])
 	return u
 
-
+'''
+Maps u indices back to indices in the original string
+'''
 def map_u_to_string_index(i, m):
 	return 1 + 3 * i if i < m else 2 + 3 * (i - m)
 
+
 '''
-MERGES SA_12 and SA_3 into the final suffix array
+Merges SA_12 and SA_3 into the final suffix array
 '''
 def merge(x, sa_12, sa_3):
 	# Create inverse suffix array for sa_12 (contains sa-ranks for given x idx)
@@ -133,8 +125,9 @@ def merge(x, sa_12, sa_3):
 # HELPER FUNCTIONS
 ################################################################################
 
-
-# Determines which suffix is smaller (i or j), using char comparisons and isa
+'''
+Determines which suffix is lexicographically smaller, i or j, using char comparisons and isa
+'''
 def smaller(string, i, j, isa):
 	# Char comparison first
 	a = safe_string_idx(string, i)
@@ -153,8 +146,30 @@ def smaller(string, i, j, isa):
 	return smaller(string, i + 1, j + 1, isa)
 
 
-# Returns the integer in x at given index
-# If we reach beyond x, return sentinel ("pad" string with sentinel)
+'''
+Returns a mapping between numbers and letter, eg. {0: "0", 1: "A", 2: "C", 3: "G", 4: "T"}, 0 is the sentinel
+and a list of the string, eg. for "ACGT" we get [1, 2, 3, 4]
+'''
+def map_string_to_ints(string):
+	letters = ''.join(set(string))
+	letters = sorted(letters)
+	num = 0
+	num_to_letter_dict = {}
+	letter_to_num_dict = {}
+	for letter in letters:
+		num_to_letter_dict[num] = letter
+		letter_to_num_dict[letter] = num
+		num += 1
+	num_ls = []
+	for s in string:
+		num_ls.append(letter_to_num_dict[s])
+	return num_to_letter_dict, num_ls
+
+
+'''
+Returns the integer in x at given index
+If we reach beyond x, return sentinel, 0 ("pad" string with sentinel)
+'''
 def safe_string_idx(x, index):
 	if index >= len(x):
 		return SENTINEL
@@ -162,14 +177,18 @@ def safe_string_idx(x, index):
 		return x[index]
 
 
-# Get triplet starting at pos i in string as a tuple, e.g. (1, 2, 3)
+'''
+Returns triplet starting at pos i in x as a tuple, e.g. (1, 2, 3)
+Pads with sentinel (0), if we reach beyond x
+'''
 def get_triplet(x, i):
 	return (safe_string_idx(x, i), safe_string_idx(x, i + 1), safe_string_idx(x, i + 2))
 
 
-# Gets alphabet of lex-names for the triples starting at given indices
-# Input should be a string and suffix array (sa_12)
-# Returns dictionary of form {triplet: lex-name}, e.g. {(1, 2, 1): 1, (1, 3, 1): 2, (2, 1, 1): 3...}
+'''
+Gets alphabet of lex-names for the triples starting at given indices
+Returns dictionary of form {triplet: lex-name}, e.g. {(1, 2, 1): 1, (1, 3, 1): 2, (2, 1, 1): 3...}
+'''
 def get_triplet_alphabet(x, indices):
 	alphabet = {}
 	letter = 1
@@ -183,15 +202,14 @@ def get_triplet_alphabet(x, indices):
 
 
 
-
-
 ########################################################
 # STABLE BUCKET SORT AND RADIX SORT FUNCTIONS
 ########################################################
 
-
-# Puts triplets into buckets, depending on idx (idx of 1, 2 or 3 is first, second and third char)
-# Returns a list of combined buckets: [bucket 1, bucket 2, ..., bucket k]
+'''
+Puts triplets into buckets, depending on idx (idx of 1, 2 or 3 is first, second and third char)
+Returns a list of combined buckets in lex-order: [bucket 1, bucket 2, ..., bucket k]
+'''
 def bucket_sort_triplet(x, triplets, alpha_size, idx):
 	# Bucket for
 	buckets = [[]]
@@ -203,7 +221,12 @@ def bucket_sort_triplet(x, triplets, alpha_size, idx):
 	return combined_buckets
 
 
-# Sorts triplets using stable bucket sort on the three symbols (last symbol first, then second, then first)
+'''
+Sorts triplets using stable bucket sort on the three symbols
+(last symbol first, then second, then first)
+Returns a list of the sorted triplets
+'''
+#
 def radix_3(x, triplets, alpha_size):
 	triplets = bucket_sort_triplet(x, triplets, alpha_size, 3)
 	triplets = bucket_sort_triplet(x, triplets, alpha_size, 2)
@@ -211,7 +234,10 @@ def radix_3(x, triplets, alpha_size):
 	return triplets
 
 
-# Sorts suffixes of x with indices as in suffix_index according to their first character
+'''
+Sorts suffixes of x with indices as in suffix_index according to their first character
+Returns a list of the sorted suffix indices
+'''
 def bucket_sort_first_char(x, suffix_indices, alpha_size):
 	buckets = [[]]
 	buckets += [[] for i in range(alpha_size)]
@@ -222,27 +248,27 @@ def bucket_sort_first_char(x, suffix_indices, alpha_size):
 	return combined_buckets
 
 
+
 ########################################################
 # TEST CODE
 ########################################################
-'''
 
+# TEST STRINGS
 #string = "ACGTAA0"
-string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
-string = "mississippi0"
-string = "ABCABC0"
+#string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
+#string = "mississippi0"
+#string = "ABCABC0"
 string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
-#print(string)
+
 alpha, ints = map_string_to_ints(string)
-print(ints) # <-- ints is our "input string" to skew_rec
+#print(string)
+#print(alpha)
+#print(ints) # <-- ints is our input ("indirect input string") to skew_rec
 
-alpha_size = len(alpha)
-
-
-sa = skew_rec(ints, alpha_size)
+sa = skew_rec(ints, len(alpha))
 print("SA:", sa)
+# Print all the suffixes in order of SA
 for s in sa:
 	print(string[s:])
 
-'''
 
