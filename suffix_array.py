@@ -8,12 +8,15 @@ from pandas import *
 
 class suffix_array:
 	def __init__(self, string):
-		self.string = string #+ "$"
+		self.string = string
 		self.length = len(self.string)
-		self.array = skew.skew_rec(self.string)
+		self.array = self.construct_array()
 		self.isa = {self.array[i]: i for i in range(self.length)}
 		self.lcp = None
 
+	def construct_array(self):
+		alpha, ints = skew.map_string_to_ints(self.string)
+		return skew.skew_rec(ints, len(alpha))
 
 	# Constructs the lcp array for this suffix array
 	# (i.e. prefix shared between entry in suffix array and previous entry)
@@ -294,10 +297,10 @@ class lcp_array:
 ########################################################
 
 #s = "mississippi$"
-#s = "abcabcabc$"
-#s = "banana"
-s = "aaaaa$"
-#s = "abababaccccccccccccccccaaaaaaabeaa$"
+#s = "abcabcabc0"
+#s = "banana0"
+#s = "aaaaa0"
+s = "abababaccccccccccccccccaaaaaaabeaa0"
 
 print("str: ", s)
 
