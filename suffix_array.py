@@ -1,9 +1,10 @@
 
 import skew
+from collections import Counter
 from pandas import *
 
 ########################################################
-# Class representing a suffix array for a string
+# Class representing a suffix array (SA) for a string
 ########################################################
 
 class suffix_array:
@@ -14,22 +15,31 @@ class suffix_array:
 		self.isa = {self.array[i]: i for i in range(self.length)}
 		self.lcp = None
 
+	'''
+	Constructs the suffix array using the Skew algorithm in time O(n)
+	'''
 	def construct_array(self):
 		alpha, ints = skew.map_string_to_ints(self.string)
 		return skew.skew_rec(ints, len(alpha))
 
-	# Constructs the lcp array for this suffix array
-	# (i.e. prefix shared between entry in suffix array and previous entry)
+	'''
+	Constructs the LCP array for this suffix array
+	(i.e. prefix shared between entry in suffix array and previous entry)
+	'''
 	def construct_lcp_array(self):
 		self.lcp = lcp_array(self)
 		return self.lcp
 
+	'''
+	Time consuming (but simple) function for finding SA
+	Used to check if we get correct result from Skew Algo
+	'''
 	def slow_SA(self):
 		return [s[1] for s in sorted((self.string[i:],i) for i in range(self.length))]
 
 
 ########################################################
-# Class representing an lcp array for a string
+# Class representing an LCP array for a string
 ########################################################
 
 class lcp_array:
@@ -58,13 +68,13 @@ class lcp_array:
 		for i in range(self.length):
 			offset = max(0, offset - 1)
 			# ii <- rank of suffix at index i
-			ii = self.isa[i]
+			ii = isa[i]
 			# If suffix i is the first entry in suffix array, set lcp = 0
 			if ii == 0:
 				lcp[ii] = 0
 				continue
 			# Index of the suffix above suffix ii in suffix array
-			j = self.sa.array[ii - 1]
+			j = sa[ii - 1]
 			# Prefix that suffix ii and suffix ii-1 share
 			offset += self.compare_lcp(self.string, i + offset, j + offset)
 			lcp[ii] = offset
@@ -82,14 +92,12 @@ class lcp_array:
 	'''
 	def RMQ(self, L, R):
 		interval = self.array[L:R] # The interval to do RMQ on
-		print("LR", L, R)
 		j = len(interval).bit_length() - 1 # log(interval_len) floor
 		# Min of left and right interval of exponents 2^j
 		# I.e. interval starting at pos L with length 2^j
 		# and interval starting at pos R - 2**j of length 2^j
 		# There may be an overlap in the two intervals, but this is OK, result will not change
 		right_idx = int(R - (2**j))
-		print("L, right_idx, j", L, right_idx, j)
 		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[right_idx][j][1]:
 			return self.RMQ_matrix[L][j]
 		else:
@@ -100,8 +108,9 @@ class lcp_array:
 	Preprocess matrix for RMQ in time O(n*log(n))
 	Returns RMQ matrix of the form [[(idx, val), (idx, val),...],[(idx, val),...],...]
 	Where rows are LCP indices and
-	Cols are j=1,2,4,8,16,... where we have calculated RMQ for intervals of lengths 2^j
-	So col 1 is j=0 (interval length 2^j = 2^0 = 1), col 2 is j=1 (interval length 2^1=2), etc.
+	cols are j = 1, 2, 4, 8, 16,... where we have calculated RMQ for intervals of lengths 2^j
+	So col 1 is j = 0 (interval length 2^j = 2^0 = 1),
+	col 2 is j = 1 (interval length 2^1=2), etc.
 	'''
 	def RMQ_preprocess(self, n):
 		# M matrix to fill: n x log(n),
@@ -150,6 +159,7 @@ class lcp_array:
 				stack.append((idx - 1, length))
 		return list(set(res)) # Remove duplicates
 
+
 	'''
 	Finds all branching tandem repeats using the "smaller half trick" to get a
 	running time of O(n log(n)) for a string of length n
@@ -165,7 +175,7 @@ class lcp_array:
 		inner_nodes = [(a, b) for (a, b) in self.child_intervals_rec(0, len(string)) if b - a > 1]
 		# For each inner node v, check if each leaf below is a tandem repeat:
 		# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
-		# but in a different subtree than leaf.
+		# but in a different subtree than leaf
 		for (node_i, node_j) in inner_nodes:
 			child_intervals = self.child_intervals_rec(node_i, node_j)
 			# The widest subtree/interval
@@ -174,7 +184,7 @@ class lcp_array:
 			(_, L) = self.RMQ(node_i + 1, node_j)
 			# Run through each subtree, EXCEPT THE WIDEST SUBTREE
 			for (ii, jj) in child_intervals:
-				if (ii, jj) == (w_i, w_j):
+				if (ii, jj) == (w_i, w_j): # ignore widest subtree
 					continue
 				# Run through each leaf in subtree
 				for q in range(ii, jj):
@@ -195,8 +205,9 @@ class lcp_array:
 							res.append((sa[r], L))
 		return list(set(res)) # remove duplicates
 
+
 	'''
-	Returns the widest interval (i, j) from a list of intervals
+	Returns the widest interval [i, j) from a list of intervals
 	'''
 	def widest(self, intervals):
 		max_size = 0
@@ -243,7 +254,7 @@ class lcp_array:
 
 	'''
 	Recursive funtion that finds ALL the child intervals
-	(so also the child intervals of the child intervals, all the way down to the leaves, (i, i+1))
+	(so also the child intervals of the child intervals, all the way down to the leaves, [i, i+1))
 	'''
 	def child_intervals_rec(self, i, j):
 		res = []
@@ -275,7 +286,6 @@ class lcp_array:
 			res = []
 			(prev_i, L) = self.RMQ(i + 1, j) # L is min val in interval, ie. split point
 			res.append((i, prev_i)) # first interval (i.e. we split at index prev_i)
-			print("RES", res)
 			if prev_i + 1 < j:
 				(ii, LL) = self.RMQ(prev_i + 1, j) # potential second split point
 				while LL == L: # If LL is in fact a split point
@@ -288,6 +298,9 @@ class lcp_array:
 			res.append((prev_i, j))
 			return res
 
+	'''
+	Prints the tandem repeats
+	'''
 	def print_TRs(self, string, TRs):
 		print("**********************")
 		print("TANDEM REPEATS:")
@@ -305,32 +318,42 @@ class lcp_array:
 # TEST CODE
 ########################################################
 
-#s = "mississippi$"
+# Test to compare two lists, i.e. do they contain the same elements
+def compare_lists(s, t):
+    return Counter(s) == Counter(t)
+
+# Test strings
+#s = "mississippi0"
 #s = "abcabcabc0"
 #s = "banana0"
 #s = "aaaaa0"
-s = "abababaccccccccccccccccaaaaaaabeaa0"
-#s = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
+#s = "abababaccccccccccccccccaaaaaaabeaa0"
+s = "aaaaaaaaaaaaaaaaaaaaaaaa0"
 
-print("str of len", len(s), ":", s)
+print("Input string of len", len(s), ":", s)
 
 sa1 = suffix_array(s)
 print("sa:  ", sa1.array)
-print("slow sa: ", sa1.slow_SA())
+print("Is Skew SA correct: ", compare_lists(sa1.array, sa1.slow_SA()))
 
 lcp = sa1.construct_lcp_array()
-print("lcp: ", lcp.array)
+print("LCP: ", lcp.array)
 
+# The two methods for finding branching tandem repeats
+branching_TRs_1 = lcp.branching_TR(s)
+branching_TRs = lcp.branching_TR_smaller_half(s)
+print("Are branching TRs found by the two methods the same: ", compare_lists(branching_TRs_1, branching_TRs))
+
+# Finding all tandem repeats
+TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
+#print("Tandem repeats (idx, len): ", TRs)
+#lcp.print_TRs(s, TRs)
+
+
+
+# OLD TESTS:
 #print(lcp.RMQ(0, 12))
 #print(DataFrame(sa1.lcp.RMQ_matrix))
-
 #print("All child intervals (recursive): ", lcp.child_intervals_rec(0, 12))
-print("Branching tandem repeats: ", lcp.branching_TR(s))
-branching_TRs = lcp.branching_TR_smaller_half(s)
-print("SMALLER HALF TRICK Branching tandem repeats: ", branching_TRs)
-
-TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
-print("Tandem repeats: ", TRs)
-lcp.print_TRs(s, TRs)
-
-
+#print("Branching tandem repeats: ", branching_TRs_1)
+#print("SMALLER HALF TRICK Branching tandem repeats: ", branching_TRs)
