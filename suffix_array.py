@@ -328,7 +328,7 @@ def compare_lists(s, t):
 #s = "banana0"
 #s = "aaaaa0"
 #s = "abababaccccccccccccccccaaaaaaabeaa0"
-s = "aaaaaaaaaaaaaaaaaaaaaaaa0"
+s = "ACCACCAGTGT$"
 
 print("Input string of len", len(s), ":", s)
 

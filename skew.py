@@ -253,6 +253,7 @@ def bucket_sort_first_char(x, suffix_indices, alpha_size):
 # TEST CODE
 ########################################################
 
+'''
 # TEST STRINGS
 #string = "ACGTAA0"
 #string = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0"
@@ -271,4 +272,4 @@ print("SA:", sa)
 for s in sa:
 	print(string[s:])
 
-
+'''
