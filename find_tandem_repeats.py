@@ -1,4 +1,3 @@
-
 import skew
 from collections import Counter
 from pandas import *
@@ -166,7 +165,7 @@ class lcp_array:
 	Returns all branching tandem repeats in a list [(string_idx, L)]
 	Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
 	'''
-	def branching_TR_smaller_half(self, string):
+	def old_branching_TR_smaller_half(self, string):
 		res = []
 		# Suffix array and inverse suffix array
 		sa = self.sa.array
@@ -198,6 +197,51 @@ class lcp_array:
 							res.append((sa[q], L))
 					# *** Check to the left (widest subtree) ***
 					if sa[q] - L in range(0, len(string)):
+						r = isa[sa[q] - L]
+						# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
+						# since we don't run through the widest subtree, so we add it here
+						if r in range(w_i, w_j):
+							res.append((sa[r], L))
+		return list(set(res)) # remove duplicates
+
+	'''
+	Finds all branching tandem repeats using the "smaller half trick" to get a
+	running time of O(n log(n)) for a string of length n
+	Returns all branching tandem repeats in a list [(string_idx, L)]
+	Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
+	'''
+	def branching_TR_smaller_half(self, x):
+		res = []
+		# Suffix array and inverse suffix array
+		sa = self.sa.array
+		isa = self.isa
+		# All inner nodes in suffix tree
+		L_intervals = [(i, j) for (i, j) in self.child_intervals_rec(0, len(x)) if j - i > 1]
+		# For each inner node v, check if each leaf below is a tandem repeat:
+		# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
+		# but in a different subtree than leaf
+		for (i, j) in L_intervals:
+			child_intervals = self.child_intervals_rec(i, j)
+			# The widest subtree/interval
+			(w_i, w_j) = self.widest(child_intervals)
+			# L is the shared node depth for all children in this subtree (i.e. child interval):
+			(_, L) = self.RMQ(i + 1, j)
+			# Run through each subtree, EXCEPT THE WIDEST SUBTREE
+			for (ii, jj) in child_intervals:
+				if (ii, jj) == (w_i, w_j): # ignore widest subtree
+					continue
+				# Run through each leaf in subtree
+				for q in range(ii, jj):
+					# *** Check to the right ***
+					# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
+					if sa[q] + L in range(0, len(x)):
+						r = isa[sa[q] + L]
+						# If "leaf sa[q]+L" is in a different subtree
+						# than "leaf sa[q]", then we have a branching TR:
+						if r in range(i, ii) or r in range(jj, j):
+							res.append((sa[q], L))
+					# *** Check to the left (widest subtree) ***
+					if sa[q] - L in range(0, len(x)):
 						r = isa[sa[q] - L]
 						# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
 						# since we don't run through the widest subtree, so we add it here
@@ -346,7 +390,7 @@ print("Are branching TRs found by the two methods the same: ", compare_lists(bra
 
 # Finding all tandem repeats
 TRs = lcp.find_all_tandem_repeats(s, branching_TRs)
-#print("Tandem repeats (idx, len): ", TRs)
+print("Tandem repeats (idx, len): ", TRs)
 #lcp.print_TRs(s, TRs)
 
 
