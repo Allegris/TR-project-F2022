@@ -1,3 +1,6 @@
+import time
+import matplotlib.pyplot as plt
+from math import log2
 import skew
 
 
@@ -278,7 +281,7 @@ def print_TRs(string, TRs):
 ########################################################
 # TEST CODE
 ########################################################
-
+'''
 # Input string
 x = "ACCACCAGTGT$"
 #x = "mississippi$"
@@ -297,9 +300,111 @@ TRs = find_all_tandem_repeats(x, branching_TRs)
 # Print the TRs
 print_TRs(x, TRs)
 print("Tandem repeats (idx, len/2): ", TRs)
+'''
+
+########################################################
+# TEST CODE: Running time
+########################################################
+
+def timer():
+	times = []
+	for i in range(10):
+		start = time.time() # Start timer
+		suffix_array(x).array
+		end = time.time() # Stop timer
+		times.append(end - start)
+	# Average running time
+	t = sum(times)/(len(times))
+	return t
+	# Min time
+	#return min(times)
+
+# x = "CGA"
+
+from numpy.random import choice
+
+alpha = ["A", "C", "G", "T"]
+#probs = [0.25] * len(alpha)
+probs = [0.1, 0.3, 0.1, 0.5]
+
+def random_string(n):
+	return "".join(choice(alpha, n, p=probs))
+
+lens = range(1, 5000, 10)
+
+xs = []
+for i in lens:
+	x = random_string(i)
+	xs.append(x + "$")
+
+sa_time_list = []
+sa_exp_times = []
+lcp_time_list = []
+branching_time_list = []
+tr_time_list = []
+
+for x in xs:
+	#start = time.time() # Start timer
+	#sa = suffix_array(x).array
+	#end = time.time() # Stop timer
+	#sa_time_list.append(end - start)
+	t = timer()
+	sa_time_list.append(t)
+	n = len(x)
+	sa_exp_time = t/n
+	sa_exp_times.append(sa_exp_time)
+
+	'''
+	start = time.time() # Start timer
+	lcp = lcp_array(x, sa)
+	end = time.time() # Stop timer
+	lcp_time_list.append(end - start)
+
+	start = time.time() # Start timer
+	branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+	end = time.time() # Stop timer
+	branching_time_list.append(end - start)
+
+	start = time.time() # Start timer
+	TRs = find_all_tandem_repeats(x, branching_TRs)
+	end = time.time() # Stop timer
+	tr_time_list.append(end - start)
+	'''
+	#print("x:", x)
+	#print_TRs(x, TRs)
+	#print("Tandem repeats (idx, len/2): ", TRs)
+
+print(sa_time_list)
+
+# Time plot
+plt.scatter(list(lens), sa_time_list, color = "green")
+#plt.xticks(range(1,21))
+#plt.title("n = " + str(n))
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (sec)", fontsize = 13)
+plt.savefig('sa_time')
+plt.show()
+plt.clf() # Clear plot
+
+plt.scatter(list(lens), sa_exp_times, color = "green")
+#plt.xticks(range(1,21))
+#plt.title("n = " + str(n))
+plt.ylim(-0.005, 0.005)
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (sec) / n", fontsize = 13)
+plt.savefig('sa_time_2')
+plt.show()
 
 
+'''
 
+x = "TCGGAACTGAGAC" #random_string(i)
+sa = suffix_array(x).array
+lcp = lcp_array(x, sa)
+branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+TRs = find_all_tandem_repeats(x, branching_TRs)
+print("x:", x)
+#print_TRs(x, TRs)
+print("Tandem repeats (idx, len/2): ", TRs)
 
-
-
+'''
