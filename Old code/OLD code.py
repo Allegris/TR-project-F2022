@@ -78,6 +78,19 @@ def branching_TR(self, string):
 		return list(set(res)) # remove duplicates
 
 
+'''
+Prints the tandem repeats
+'''
+def old_print_TRs(string, TRs):
+	print("**********************")
+	print("TANDEM REPEATS:")
+	for tr in TRs:
+		first_end =  tr[0] + tr[1]
+		if tr[1] <= 20:
+			print("Idx", tr[0], ": ", string[tr[0]: first_end], ",", string[first_end:first_end + tr[1]])
+		else:
+			print("Idx", tr[0], ": repeat of length", tr[1])
+	print("**********************")
 
 
 

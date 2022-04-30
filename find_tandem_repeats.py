@@ -232,14 +232,14 @@ def branching_TR_smaller_half(x, sa, lcp):
 					# If "leaf sa[q]+L" is in a different subtree
 					# than "leaf sa[q]", then we have a branching TR:
 					if r in range(i, ii) or r in range(jj, j):
-						res.append((sa[q], L))
+						res.append((sa[q], 2*L))
 				# *** Check to the left (widest subtree) ***
 				if sa[q] - L in range(0, len(x)):
 					r = isa[sa[q] - L]
 					# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
 					# since we don't run through the widest subtree, so we add it here
 					if r in range(w_i, w_j):
-						res.append((sa[r], L))
+						res.append((sa[r], 2*L))
 	return list(set(res)) # remove duplicates
 
 
@@ -261,19 +261,24 @@ def find_all_tandem_repeats(x, branching_TRs):
 	return list(set(res)) # Remove duplicates
 
 
-
 '''
 Prints the tandem repeats
 '''
-def print_TRs(string, TRs):
+def print_TRs(x, TRs):
 	print("**********************")
-	print("TANDEM REPEATS:")
+	print("TANDEM REPEATS, (index, length), for string:")
+	if len(x) <= 100:
+		print("x:", x)
+	else:
+		print("x of length", str(len(x)), "is too long, so not printed")
+	TRs.sort()
 	for tr in TRs:
-		first_end =  tr[0] + tr[1]
-		if tr[1] <= 20:
-			print("Idx", tr[0], ": ", string[tr[0]: first_end], ",", string[first_end:first_end + tr[1]])
+		idx = tr[0]
+		L = tr[1]
+		if L <= 40:
+			print(str(tr) + ": " + x[idx: idx+L//2], x[idx+L//2: idx+L])
 		else:
-			print("Idx", tr[0], ": repeat of length", tr[1])
+			print(str(tr) + ": too long, not printed")
 	print("**********************")
 
 
@@ -281,11 +286,13 @@ def print_TRs(string, TRs):
 ########################################################
 # TEST CODE
 ########################################################
-'''
+
 # Input string
-x = "ACCACCAGTGT$"
+#x = "ACCACCAGTGT$"
+x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
+#x = "aaaaaaaaaaaaaaaaaaaaaa$"
 
 # Suffix array and LCP array
 sa = suffix_array(x).array
@@ -298,29 +305,13 @@ branching_TRs = branching_TR_smaller_half(x, sa, lcp)
 TRs = find_all_tandem_repeats(x, branching_TRs)
 
 # Print the TRs
-print_TRs(x, TRs)
-print("Tandem repeats (idx, len/2): ", TRs)
-'''
+print_TRs(x, TRs.copy())
+
 
 ########################################################
 # TEST CODE: Running time
 ########################################################
-
-def timer():
-	times = []
-	for i in range(10):
-		start = time.time() # Start timer
-		suffix_array(x).array
-		end = time.time() # Stop timer
-		times.append(end - start)
-	# Average running time
-	t = sum(times)/(len(times))
-	return t
-	# Min time
-	#return min(times)
-
-# x = "CGA"
-
+'''
 from numpy.random import choice
 
 alpha = ["A", "C", "G", "T"]
@@ -330,81 +321,51 @@ probs = [0.1, 0.3, 0.1, 0.5]
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
-lens = range(1, 5000, 10)
+N = 30000
+lens = range(1, N, 300)
 
 xs = []
 for i in lens:
 	x = random_string(i)
 	xs.append(x + "$")
 
-sa_time_list = []
-sa_exp_times = []
-lcp_time_list = []
-branching_time_list = []
-tr_time_list = []
+times = []
+exp_times = []
 
 for x in xs:
-	#start = time.time() # Start timer
-	#sa = suffix_array(x).array
-	#end = time.time() # Stop timer
-	#sa_time_list.append(end - start)
-	t = timer()
-	sa_time_list.append(t)
+	ts = []
+	for i in range(10):
+		start = time.time() # Start timer
+		sa = suffix_array(x).array
+		lcp = lcp_array(x, sa)
+		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+		btr = find_all_tandem_repeats(x, branching_TRs)
+		end = time.time() # Stop timer
+		ts.append(end - start)
+	# Average running time
+	t = sum(ts)/(len(ts))
+	times.append(t)
 	n = len(x)
-	sa_exp_time = t/n
-	sa_exp_times.append(sa_exp_time)
+	print(n)
+	exp_times.append(t/((n*log2(n))+len(btr)))
 
-	'''
-	start = time.time() # Start timer
-	lcp = lcp_array(x, sa)
-	end = time.time() # Stop timer
-	lcp_time_list.append(end - start)
-
-	start = time.time() # Start timer
-	branching_TRs = branching_TR_smaller_half(x, sa, lcp)
-	end = time.time() # Stop timer
-	branching_time_list.append(end - start)
-
-	start = time.time() # Start timer
-	TRs = find_all_tandem_repeats(x, branching_TRs)
-	end = time.time() # Stop timer
-	tr_time_list.append(end - start)
-	'''
-	#print("x:", x)
-	#print_TRs(x, TRs)
-	#print("Tandem repeats (idx, len/2): ", TRs)
-
-print(sa_time_list)
 
 # Time plot
-plt.scatter(list(lens), sa_time_list, color = "green")
+plt.scatter(list(lens), times, color = "blue")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig('sa_time')
+plt.savefig("time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-plt.scatter(list(lens), sa_exp_times, color = "green")
+plt.scatter(list(lens), exp_times, color = "blue")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.ylim(-0.005, 0.005)
 plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (sec) / n", fontsize = 13)
-plt.savefig('sa_time_2')
+plt.ylabel("Time (sec) / nlogn", fontsize = 13)
+plt.savefig("time_plot_exp_" + str(N))
 plt.show()
-
-
-'''
-
-x = "TCGGAACTGAGAC" #random_string(i)
-sa = suffix_array(x).array
-lcp = lcp_array(x, sa)
-branching_TRs = branching_TR_smaller_half(x, sa, lcp)
-TRs = find_all_tandem_repeats(x, branching_TRs)
-print("x:", x)
-#print_TRs(x, TRs)
-print("Tandem repeats (idx, len/2): ", TRs)
-
 '''
