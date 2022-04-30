@@ -286,13 +286,13 @@ def print_TRs(x, TRs):
 ########################################################
 # TEST CODE
 ########################################################
-
+'''
 # Input string
-#x = "ACCACCAGTGT$"
-x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
+x = "ACCACCAGTGT$"
+#x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
-#x = "aaaaaaaaaaaaaaaaaaaaaa$"
+x = "aaaaaa$"
 
 # Suffix array and LCP array
 sa = suffix_array(x).array
@@ -306,12 +306,12 @@ TRs = find_all_tandem_repeats(x, branching_TRs)
 
 # Print the TRs
 print_TRs(x, TRs.copy())
-
+'''
 
 ########################################################
 # TEST CODE: Running time
 ########################################################
-'''
+
 from numpy.random import choice
 
 alpha = ["A", "C", "G", "T"]
@@ -321,12 +321,13 @@ probs = [0.1, 0.3, 0.1, 0.5]
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
-N = 30000
-lens = range(1, N, 300)
+N = 500
+lens = range(1, N, 10)
 
 xs = []
 for i in lens:
-	x = random_string(i)
+	#x = random_string(i)
+	x = "A" * i
 	xs.append(x + "$")
 
 times = []
@@ -334,7 +335,7 @@ exp_times = []
 
 for x in xs:
 	ts = []
-	for i in range(10):
+	for i in range(5):
 		start = time.time() # Start timer
 		sa = suffix_array(x).array
 		lcp = lcp_array(x, sa)
@@ -368,4 +369,3 @@ plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec) / nlogn", fontsize = 13)
 plt.savefig("time_plot_exp_" + str(N))
 plt.show()
-'''
