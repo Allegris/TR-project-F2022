@@ -332,6 +332,7 @@ for i in lens:
 
 times = []
 exp_times = []
+exp_times2 = []
 
 for x in xs:
 	ts = []
@@ -340,7 +341,7 @@ for x in xs:
 		sa = suffix_array(x).array
 		lcp = lcp_array(x, sa)
 		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
-		btr = find_all_tandem_repeats(x, branching_TRs)
+		tr = find_all_tandem_repeats(x, branching_TRs)
 		end = time.time() # Stop timer
 		ts.append(end - start)
 	# Average running time
@@ -348,11 +349,12 @@ for x in xs:
 	times.append(t)
 	n = len(x)
 	print(n)
-	exp_times.append(t/((n*log2(n))+len(btr)))
-
+	#exp_times.append(t/((n*log2(n))+len(tr)))
+	exp_times.append(t/(n**2))
+	exp_times2.append(t/((n*log2(n))+len(tr)))
 
 # Time plot
-plt.scatter(list(lens), times, color = "blue")
+plt.scatter(list(lens), times, color = "red")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.xlabel("n", fontsize = 13)
@@ -361,11 +363,22 @@ plt.savefig("time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-plt.scatter(list(lens), exp_times, color = "blue")
+plt.scatter(list(lens), exp_times, color = "red")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
-plt.ylim(-0.005, 0.005)
+plt.ylim(-0.002, 0.002)
 plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (sec) / nlogn", fontsize = 13)
+plt.ylabel("Time (sec) / n^2", fontsize = 13)
 plt.savefig("time_plot_exp_" + str(N))
 plt.show()
+
+plt.scatter(list(lens), exp_times2, color = "red")
+#plt.xticks(range(1,21))
+#plt.title("n = " + str(n))
+plt.ylim(-0.002, 0.002)
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (sec) / nlogn + z", fontsize = 13)
+plt.savefig("time_plot_exp2_" + str(N))
+plt.show()
+
+
