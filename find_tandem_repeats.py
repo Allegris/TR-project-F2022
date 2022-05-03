@@ -177,7 +177,9 @@ class lcp_array:
 			for (ii, jj) in child_intervals:
 				if jj-ii > 1: # if non-empty, non-singleton interval
 					res += self.child_intervals_rec(ii, jj)
-		return list(set(res)) # remove duplicates
+		#return list(set(res)) # remove duplicates
+		return res
+
 
 
 ########################################################
@@ -214,7 +216,7 @@ def branching_TR_smaller_half(x, sa, lcp):
 	# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
 	# but in a different subtree than leaf
 	for (i, j) in L_intervals:
-		child_intervals = lcp.child_intervals_rec(i, j)
+		child_intervals = lcp.get_child_intervals(i, j)
 		# The widest subtree/interval
 		(w_i, w_j) = widest(child_intervals)
 		# L is the shared node depth for all children in this subtree (i.e. child interval):
@@ -227,20 +229,21 @@ def branching_TR_smaller_half(x, sa, lcp):
 			for q in range(ii, jj):
 				# *** Check to the right ***
 				# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
-				if sa[q] + L in range(0, len(x)):
+				if sa[q] + L >= 0 and sa[q] + L < len(x):
 					r = isa[sa[q] + L]
 					# If "leaf sa[q]+L" is in a different subtree
 					# than "leaf sa[q]", then we have a branching TR:
-					if r in range(i, ii) or r in range(jj, j):
+					if (r >= i and r < ii) or (r >= jj and r < j):
 						res.append((sa[q], 2*L))
 				# *** Check to the left (widest subtree) ***
-				if sa[q] - L in range(0, len(x)):
+				if sa[q] - L >= 0 and sa[q] + L < len(x):
 					r = isa[sa[q] - L]
 					# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
 					# since we don't run through the widest subtree, so we add it here
-					if r in range(w_i, w_j):
+					if r >= w_i and r < w_j:
 						res.append((sa[r], 2*L))
-	return list(set(res)) # remove duplicates
+	#return list(set(res)) # remove duplicates
+	return res
 
 
 
@@ -258,7 +261,8 @@ def find_all_tandem_repeats(x, branching_TRs):
 		if x[idx - 1] == last_symbol:
 			res.append((idx - 1, length))
 			stack.append((idx - 1, length))
-	return list(set(res)) # Remove duplicates
+	#return list(set(res)) # Remove duplicates
+	return res
 
 
 '''
@@ -288,15 +292,18 @@ def print_TRs(x, TRs):
 ########################################################
 '''
 # Input string
-x = "ACCACCAGTGT$"
+#x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
 x = "aaaaaa$"
+#x = "aaaa$"
 
 # Suffix array and LCP array
 sa = suffix_array(x).array
 lcp = lcp_array(x, sa)
+
+print(lcp.child_intervals_rec(0, len(x)))
 
 # Find all branching TRs
 branching_TRs = branching_TR_smaller_half(x, sa, lcp)
@@ -321,13 +328,13 @@ probs = [0.1, 0.3, 0.1, 0.5]
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
-N = 500
-lens = range(1, N, 10)
+N = 100000
+lens = range(100, N, 10000) #10
 
 xs = []
 for i in lens:
-	#x = random_string(i)
-	x = "A" * i
+	x = random_string(i)
+	#x = "A" * i
 	xs.append(x + "$")
 
 times = []
@@ -350,8 +357,10 @@ for x in xs:
 	n = len(x)
 	print(n)
 	#exp_times.append(t/((n*log2(n))+len(tr)))
-	exp_times.append(t/(n**2))
+	#exp_times.append(t/(n**2))
+	exp_times.append(t/n)
 	exp_times2.append(t/((n*log2(n))+len(tr)))
+
 
 # Time plot
 plt.scatter(list(lens), times, color = "red")
@@ -366,7 +375,7 @@ plt.clf() # Clear plot
 plt.scatter(list(lens), exp_times, color = "red")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
-plt.ylim(-0.002, 0.002)
+plt.ylim(-0.0001, 0.0001)
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec) / n^2", fontsize = 13)
 plt.savefig("time_plot_exp_" + str(N))
@@ -375,7 +384,7 @@ plt.show()
 plt.scatter(list(lens), exp_times2, color = "red")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
-plt.ylim(-0.002, 0.002)
+plt.ylim(-0.0001, 0.0001)
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec) / nlogn + z", fontsize = 13)
 plt.savefig("time_plot_exp2_" + str(N))
