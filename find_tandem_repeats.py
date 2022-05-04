@@ -134,7 +134,8 @@ class lcp_array:
 	########################################################
 
 	'''
-	Get (direct) child intervals for an L-lcp interval [i,j)
+	Get direct child intervals for an L-interval [i,j)
+	I.e. get direct child nodes of a node [i, j)
 	'''
 	def get_child_intervals(self, i, j):
 		# Empty interval, eg. (5, 5)
@@ -165,20 +166,21 @@ class lcp_array:
 			return res
 
 
-	'''
-	Recursive funtion that finds ALL the child intervals
-	(so also the child intervals of the child intervals, all the way down to the leaves, [i, i+1))
-	'''
-	def child_intervals_rec(self, i, j):
-		res = []
-		child_intervals = self.get_child_intervals(i, j)
-		res += child_intervals
-		if len(child_intervals) > 1:
-			for (ii, jj) in child_intervals:
-				if jj-ii > 1: # if non-empty, non-singleton interval
-					res += self.child_intervals_rec(ii, jj)
-		#return list(set(res)) # remove duplicates
+	def get_inner_nodes(self, a, b):
+		if b - a <= 2:
+			return [] # No inner nodes for interval of length b-a
+		res = [(a, b)]
+		stack = [(a, b)]
+		while len(stack) > 0:
+			(i, j) = stack.pop()
+			direct_children = self.get_child_intervals(i, j)
+			for (ii, jj) in direct_children:
+				if jj - ii > 1: # non-singleton (non-leaf)
+					res.append((ii, jj))
+				if jj - ii > 2:
+					stack.append((ii, jj))
 		return res
+
 
 
 
@@ -203,54 +205,56 @@ def widest(intervals):
 '''
 Finds all branching tandem repeats using the "smaller half trick" to get a
 running time of O(n log(n)) for a string of length n
-Returns all branching tandem repeats in a list [(string_idx, L)]
-Where L is the length of the repeated substring, so the tandem repeat "AA" has length 2*L
+Returns all branching tandem repeats in a list [(string_idx, length)]
+(eg. ABCABC has length 6)
 '''
 def branching_TR_smaller_half(x, sa, lcp):
 	res = []
+	n = len(x)
 	# Inverse suffix array
-	isa = {sa[i]: i for i in range(len(x))}
-	# All inner nodes in suffix tree
-	L_intervals = [(i, j) for (i, j) in lcp.child_intervals_rec(0, len(x)) if j - i > 1]
-	# For each inner node v, check if each leaf below is a tandem repeat:
-	# A leaf is a tandem repeat if isa[sa[leaf] + depth(v)] is below v,
-	# but in a different subtree than leaf
-	for (i, j) in L_intervals:
-		child_intervals = lcp.get_child_intervals(i, j)
-		# The widest subtree/interval
-		(w_i, w_j) = widest(child_intervals)
-		# L is the shared node depth for all children in this subtree (i.e. child interval):
+	isa = {sa[i]: i for i in range(n)}
+	# "Inner nodes" in T (as L-intervals)
+	inner_nodes = lcp.get_inner_nodes(0, n)
+	# Run through each "inner node", [i, j), of T
+	for (i, j) in inner_nodes:
+		# Direct "child nodes" of [i, j) (as L-intervals)
+		child_nodes = lcp.get_child_intervals(i, j)
+		# The widest "child node" (as L-interval)
+		(w_i, w_j) = widest(child_nodes)
+		# L is the shared depth of all "leaves" in "sub-tree" of [i, j)
 		(_, L) = lcp.RMQ(i + 1, j)
-		# Run through each subtree, EXCEPT THE WIDEST SUBTREE
-		for (ii, jj) in child_intervals:
-			if (ii, jj) == (w_i, w_j): # ignore widest subtree
+		# Run through each "child node", (ii, jj), EXCEPT THE WIDEST ONE
+		for (ii, jj) in child_nodes:
+			if (ii, jj) == (w_i, w_j): # ignore widest "node"
 				continue
-			# Run through each leaf in subtree
+			# Run through each "leaf", sa[q], in "sub-tree" of (ii, jj)
 			for q in range(ii, jj):
 				# *** Check to the right ***
-				# "Leaf sa[q]+L" that may potentially form a branching TR with "leaf sa[q]"
-				if sa[q] + L >= 0 and sa[q] + L < len(x):
+				# "Leaf sa[q]+L" might form a branching TR with "leaf sa[q]"
+				if sa[q] + L >= 0 and sa[q] + L < n: # Do not reach out of ISA
 					r = isa[sa[q] + L]
-					# If "leaf sa[q]+L" is in a different subtree
-					# than "leaf sa[q]", then we have a branching TR:
+					# If "leaf" sa[q]+L is below "node" [i,j), but in a
+					# different sub-tree than "leaf" sa[q], then we have
+					# a branching TR.
+					# I.e. if isa[sa[q] + L] is in [i, j) but not in [ii, jj):
 					if (r >= i and r < ii) or (r >= jj and r < j):
 						res.append((sa[q], 2*L))
-				# *** Check to the left (widest subtree) ***
-				if sa[q] - L >= 0 and sa[q] + L < len(x):
+				# *** Check to the left (widest sub-tree) ***
+				if sa[q] - L >= 0 and sa[q] + L < n: # Do not reach out of ISA
 					r = isa[sa[q] - L]
-					# If "leaf sa[q]-L" is in the widest subtree, then we would have missed it,
-					# since we don't run through the widest subtree, so we add it here
+					# If "leaf" sa[q]-L is in the widest sub-tree, then we
+					# would have missed it, since we don't run through the
+					# widest sub-tree, so we add it here
 					if r >= w_i and r < w_j:
 						res.append((sa[r], 2*L))
-	#return list(set(res)) # remove duplicates
 	return res
 
 
 
 '''
-Finds all tandem repeats in a string, given a list on branching tandem repeats by using left-rotations
-Eg. if we have a branching TR at pos i+1 consisting of string w*a, then we can check if we also have a
-tandem repeat by left rotation, i.e. by checking if the symbol string[i] == a.
+Finds all tandem repeats in a string, given a list of branching tandem repeats by using left-rotations
+Eg. if we have a branching TR at pos i consisting of string w*a, then we can check if we also have a
+tandem repeat by left rotation, i.e. by checking if the symbol string[i-1] == a.
 '''
 def find_all_tandem_repeats(x, branching_TRs):
 	res = branching_TRs.copy()
@@ -261,7 +265,6 @@ def find_all_tandem_repeats(x, branching_TRs):
 		if x[idx - 1] == last_symbol:
 			res.append((idx - 1, length))
 			stack.append((idx - 1, length))
-	#return list(set(res)) # Remove duplicates
 	return res
 
 
@@ -292,18 +295,19 @@ def print_TRs(x, TRs):
 ########################################################
 '''
 # Input string
-#x = "ACCACCAGTGT$"
+x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
-x = "aaaaaa$"
+#x = "aaaaaa$"
 #x = "aaaa$"
 
 # Suffix array and LCP array
 sa = suffix_array(x).array
 lcp = lcp_array(x, sa)
 
-print(lcp.child_intervals_rec(0, len(x)))
+#print(lcp.get_inner_nodes(0, len(x)))
+
 
 # Find all branching TRs
 branching_TRs = branching_TR_smaller_half(x, sa, lcp)
@@ -313,8 +317,8 @@ TRs = find_all_tandem_repeats(x, branching_TRs)
 
 # Print the TRs
 print_TRs(x, TRs.copy())
-'''
 
+'''
 ########################################################
 # TEST CODE: Running time
 ########################################################
@@ -328,8 +332,8 @@ probs = [0.1, 0.3, 0.1, 0.5]
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
-N = 100000
-lens = range(100, N, 10000) #10
+N = 1000000
+lens = range(1, N, 100000) #10
 
 xs = []
 for i in lens:
@@ -357,13 +361,12 @@ for x in xs:
 	n = len(x)
 	print(n)
 	#exp_times.append(t/((n*log2(n))+len(tr)))
-	#exp_times.append(t/(n**2))
-	exp_times.append(t/n)
+	exp_times.append(t/(n**2))
 	exp_times2.append(t/((n*log2(n))+len(tr)))
 
 
 # Time plot
-plt.scatter(list(lens), times, color = "red")
+plt.scatter(list(lens), times, color = "blue")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.xlabel("n", fontsize = 13)
@@ -372,7 +375,7 @@ plt.savefig("time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-plt.scatter(list(lens), exp_times, color = "red")
+plt.scatter(list(lens), exp_times, color = "blue")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.ylim(-0.0001, 0.0001)
@@ -380,8 +383,9 @@ plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec) / n^2", fontsize = 13)
 plt.savefig("time_plot_exp_" + str(N))
 plt.show()
+plt.clf()
 
-plt.scatter(list(lens), exp_times2, color = "red")
+plt.scatter(list(lens), exp_times2, color = "blue")
 #plt.xticks(range(1,21))
 #plt.title("n = " + str(n))
 plt.ylim(-0.0001, 0.0001)
