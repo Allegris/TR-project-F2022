@@ -2,175 +2,7 @@ import time
 import matplotlib.pyplot as plt
 from math import log2
 import skew
-
-
-########################################################
-# Class representing a suffix array (SA) for a string
-########################################################
-
-class suffix_array:
-	def __init__(self, x):
-		self.string = x
-		self.array = self.construct_array()
-
-	'''
-	Constructs the suffix array using the Skew algorithm in time O(n)
-	'''
-	def construct_array(self):
-		alpha, ints = skew.map_string_to_ints(self.string)
-		return skew.skew_rec(ints, len(alpha))
-
-	'''
-	Time consuming (but simple) function for finding SA
-	Used to check if we get correct result from Skew Algo
-	'''
-	def slow_SA(self):
-		return [s[1] for s in sorted((self.string[i:],i) for i in range(len(x)))]
-
-
-########################################################
-# Class representing an LCP array for a string
-########################################################
-
-class lcp_array:
-	def __init__(self, x, sa):
-		self.sa = sa # Suffix array
-		self.string = x
-		self.length = len(x)
-		self.array = self.construct_lcp()
-		self.RMQ_matrix = self.RMQ_preprocess(len(self.array))
-
-	# Check length of shared prefix between suffix i and j
-	def compare_lcp(self, x, i, j):
-		m = min(len(x) - i, len(x) - j)
-		for k in range(m):
-			if x[i + k] != x[j + k]:
-				return k
-		return m
-
-	# Constructs lcp array from suffix array
-	def construct_lcp(self):
-		lcp = [None] * self.length
-		offset = 0
-		sa = self.sa
-		isa = {sa[i]: i for i in range(self.length)}
-		for i in range(self.length):
-			offset = max(0, offset - 1)
-			# ii <- rank of suffix at index i
-			ii = isa[i]
-			# If suffix i is the first entry in suffix array, set lcp = 0
-			if ii == 0:
-				lcp[ii] = 0
-				continue
-			# Index of the suffix above suffix ii in suffix array
-			j = sa[ii - 1]
-			# Prefix that suffix ii and suffix ii-1 share
-			offset += self.compare_lcp(self.string, i + offset, j + offset)
-			lcp[ii] = offset
-		return lcp
-
-
-	########################################################
-	# Range Minimum Query (RMQ) for LCP array
-	########################################################
-
-	'''
-	Computes the range minimum query (RMQ) of interval [i,j), i.e. (index and value of)
-	leftmost occurrence of min value in range [i,j)
-	Returns RMQ of the form (index, min_value)
-	'''
-	def RMQ(self, L, R):
-		interval = self.array[L:R] # The interval to do RMQ on
-		j = len(interval).bit_length() - 1 # log(interval_len) floor
-		# Min of left and right interval of exponents 2^j
-		# I.e. interval starting at pos L with length 2^j
-		# and interval starting at pos R - 2**j of length 2^j
-		# There may be an overlap in the two intervals, but this is OK, result will not change
-		right_idx = int(R - (2**j))
-		if self.RMQ_matrix[L][j][1] <= self.RMQ_matrix[right_idx][j][1]:
-			return self.RMQ_matrix[L][j]
-		else:
-			return self.RMQ_matrix[right_idx][j]
-
-
-	'''
-	Preprocess matrix for RMQ in time O(n*log(n))
-	Returns RMQ matrix of the form [[(idx, val), (idx, val),...],[(idx, val),...],...]
-	Where rows are LCP indices and
-	cols are j = 1, 2, 4, 8, 16,... where we have calculated RMQ for intervals of lengths 2^j
-	So col 1 is j = 0 (interval length 2^j = 2^0 = 1),
-	col 2 is j = 1 (interval length 2^1=2), etc.
-	'''
-	def RMQ_preprocess(self, n):
-		# M matrix to fill: n x log(n),
-		# where entry M[i][j] is the RMQ for interval starting at idx i of length 2^j
-		log_n = n.bit_length() # this is log(n) ceil, so eg. for 15 => 4 (2^4 = 16)
-		#M = [[(sys.maxsize, sys.maxsize)]*(log_n) for _ in range(n)]
-		M = [[(None, None)]*(log_n) for _ in range(n)]
-		# Intervals of length 1 first:
-		for i in range(n):
-			M[i][0] = (i, self.array[i])
-
-		# Preprocessing/filling out M for intervals of length 2^k (2, 4, 8, 16...) next:
-		# Run through all exponents, in increasing order: j = 1,2,4,8,..., log n
-		for j in range(1, log_n):
-			# Run through all intervals of length 2**j (stop if interval exceeds list length)
-			last_idx = (n - (2**j)) + 1
-			for i in range(last_idx): # note: last_index excluded
-				# Every interval of length 2^j can be seen as two intervals of size 2^(j-1)
-				# So for an interval of size 2^j, take the minimum of the two 2^(j-1) values
-				# These two are the intervals:
-				# 1) Starting at pos i with length 2^(j-1)
-				# 2) Starting at pos i + 2^(j-1) with length 2^(j-1)
-				left_min = M[i][j-1]
-				right_min = M[i+(2**(j-1))][j-1]
-				M[i][j] = left_min if left_min[1] <= right_min[1] else right_min
-		return M
-
-	########################################################
-	# Find child intervals for LCP array
-	########################################################
-
-	'''
-	Get direct child intervals for an L-interval [i,j)
-	I.e. get direct child nodes of a node [i, j)
-	'''
-	def get_child_intervals(self, i, j):
-		# Singleton
-		if i + 1 == j:
-			yield (i, j)
-		# Non-singleton
-		else:
-			(prev_i, L) = lcp.RMQ(i + 1, j)
-			yield (i, prev_i)
-			if prev_i + 1 < j:
-				(ii, LL) = lcp.RMQ(prev_i + 1, j)
-				while LL == L:
-					yield (prev_i, ii)
-					prev_i = ii
-					if prev_i + 1 >= j:
-						break
-					else:
-						(ii, LL) = lcp.RMQ(prev_i + 1, j)
-			yield (prev_i, j)
-
-
-	'''
-	Yields the "inner nodes" in the "suffix tree"
-	as L-intervals; i.e. only the non-singleton L-intervals
-	'''
-	def get_inner_nodes(self, a, b):
-		if b - a <= 2:
-			return # No inner nodes for interval of length < 2
-		stack = [(a, b)]
-		while stack:
-			(i, j) = stack.pop()
-			yield (i, j)
-			stack.extend((ii, jj)
-				for (ii, jj) in self.get_child_intervals(i, j)
-				if jj > ii + 1)
-
-
+import rmq
 
 
 ########################################################
@@ -185,10 +17,10 @@ Returns all branching tandem repeats in a list [(string_idx, length)]
 '''
 def branching_TR_smaller_half(x, sa, lcp):
 	isa = construct_isa(sa)
-	for (i, j) in lcp.get_inner_nodes(0, len(x)):
-		child_nodes = list(lcp.get_child_intervals(i, j))
+	for (i, j) in get_inner_nodes(lcp, 0, len(x)):
+		child_nodes = list(get_child_intervals(lcp, i, j))
 		(w_i, w_j) = widest(child_nodes)
-		(_, L) = lcp.RMQ(i + 1, j)
+		(_, L) = rmq.RMQ(lcp, i + 1, j)
 		for (ii, jj) in child_nodes:
 			if (ii, jj) == (w_i, w_j):
 				continue
@@ -201,20 +33,46 @@ def branching_TR_smaller_half(x, sa, lcp):
 				if w_i <= r < w_j:
 					yield (sa[r], 2*L)
 
-########################################################
-# Helper functions - BTR
-########################################################
+'''
+Yields the "inner nodes" in the "suffix tree"
+as L-intervals; i.e. only the non-singleton L-intervals
+'''
+def get_inner_nodes(lcp, a, b):
+	if b - a <= 2:
+		return # No inner nodes for interval of length < 2
+	stack = [(a, b)]
+	while stack:
+		(i, j) = stack.pop()
+		yield (i, j)
+		stack.extend((ii, jj)
+			for (ii, jj) in get_child_intervals(lcp, i, j)
+			if jj > ii + 1)
 
 '''
-Constructs the inverse suffix array from the suffix array
+Get direct child intervals for an L-interval [i,j)
+I.e. get direct child nodes of a node [i, j)
 '''
-def construct_isa(sa):
-	isa = [None]*len(sa)
-	for i, a in enumerate(sa):
-		isa[a] = i
-	return isa
+def get_child_intervals(lcp, i, j):
+	# Singleton
+	if i + 1 == j:
+		yield (i, j)
+	# Non-singleton
+	else:
+		(prev_i, L) = rmq.RMQ(lcp, i + 1, j)
+		yield (i, prev_i)
+		if prev_i + 1 < j:
+			(ii, LL) = rmq.RMQ(lcp, prev_i + 1, j)
+			while LL == L:
+				yield (prev_i, ii)
+				prev_i = ii
+				if prev_i + 1 >= j:
+					break
+				else:
+					(ii, LL) = rmq.RMQ(lcp, prev_i + 1, j)
+		yield (prev_i, j)
 
 '''
+HELPER FUNCTION
 Returns the widest interval [i, j) from a list of intervals
 '''
 def widest(intervals):
@@ -227,6 +85,7 @@ def widest(intervals):
 	return max_interval
 
 '''
+HELPER FUNCTION
 Yields the q's in the interval [i, j) for
 which sa[q]+offset is within the interval [0, len(sa)).
 Used for checking if a given index is valid for isa.
@@ -235,7 +94,6 @@ def valid_isa_index(sa, i, j, offset):
 	for q in range(i, j):
 		if 0 <= sa[q] + offset < len(sa):
 			yield q
-
 
 ########################################################
 # Finding all tandem repeats from the branching ones
@@ -252,11 +110,73 @@ def find_all_tandem_repeats(x, branching_TRs):
 		while can_rotate(x, i, L):
 			yield (i-1, L)
 			i -= 1
+
 '''
 Checks if we can left-rotate x[i:n) and get a tandem repeat
 '''
 def can_rotate(x, i, L):
 	return i > 0 and x[i - 1] == x[i + L - 1]
+
+
+########################################################
+# Arrays: SA, ISA, LCP
+########################################################
+
+'''
+Construct suffix array using the Skew algorithm in time O(n)
+'''
+def construct_sa(x):
+	alpha, ints = skew.map_string_to_ints(x)
+	return skew.skew_rec(ints, len(alpha))
+
+'''
+Slow, but simple, function for constructing suffix array.
+Only used to test against Skew algo results.
+'''
+def construct_sa_slow(x):
+	return [s[1] for s in sorted((x[i:], i) for i in range(len(x)))]
+
+'''
+Constructs the inverse suffix array from the suffix array
+'''
+def construct_isa(sa):
+	isa = [None]*len(sa)
+	for i, a in enumerate(sa):
+		isa[a] = i
+	return isa
+
+'''
+Construct LCP array from suffix array
+'''
+def construct_lcp(x, sa):
+	isa = construct_isa(sa)
+	lcp = [None] * len(x)
+	offset = 0
+	for i in range(len(x)):
+		offset = max(0, offset - 1)
+		# ii <- rank of suffix at index i
+		ii = isa[i]
+		# If suffix i is the first entry in suffix array, set lcp = 0
+		if ii == 0:
+			lcp[ii] = 0
+			continue
+		# Index of the suffix above suffix ii in suffix array
+		j = sa[ii - 1]
+		# Prefix that suffix ii and suffix ii-1 share
+		offset += shared_prefix_len(x, i + offset, j + offset)
+		lcp[ii] = offset
+	return lcp
+
+'''
+Returns the length of longest shared prefix between suffix i and j
+'''
+def shared_prefix_len(x, i, j):
+	m = min(len(x) - i, len(x) - j)
+	for k in range(m):
+		if x[i + k] != x[j + k]:
+			return k
+	return m
+
 
 
 ########################################################
@@ -289,16 +209,17 @@ def print_TRs(x, TRs):
 ########################################################
 
 # Input string
-x = "ACCACCAGTGT$"
+#x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
-#x = "mississippi$"
+x = "mississippi$"
 #x = "banana$"
 #x = "aaaaaa$"
 #x = "aaaa$"
 
 # Suffix array and LCP array
-sa = suffix_array(x).array
-lcp = lcp_array(x, sa)
+sa = construct_sa(x)
+#lcp = lcp_array(x, sa)
+lcp = construct_lcp(x, sa)
 
 # Find all branching TRs
 branching_TRs = branching_TR_smaller_half(x, sa, lcp)
