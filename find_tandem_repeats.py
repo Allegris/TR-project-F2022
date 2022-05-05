@@ -9,11 +9,9 @@ import skew
 ########################################################
 
 class suffix_array:
-	def __init__(self, string):
-		self.string = string
-		self.length = len(self.string)
+	def __init__(self, x):
+		self.string = x
 		self.array = self.construct_array()
-		self.isa = {self.array[i]: i for i in range(self.length)}
 
 	'''
 	Constructs the suffix array using the Skew algorithm in time O(n)
@@ -27,7 +25,7 @@ class suffix_array:
 	Used to check if we get correct result from Skew Algo
 	'''
 	def slow_SA(self):
-		return [s[1] for s in sorted((self.string[i:],i) for i in range(self.length))]
+		return [s[1] for s in sorted((self.string[i:],i) for i in range(len(x)))]
 
 
 ########################################################
@@ -138,46 +136,32 @@ class lcp_array:
 	I.e. get direct child nodes of a node [i, j)
 	'''
 	def get_child_intervals(self, i, j):
+		# Singleton
 		if i + 1 == j:
-			return [(i, j)]
+			yield (i, j)
+		# Non-singleton
 		else:
-			res = []
-			(prev_i, L) = lcp.RMQ(i + 1, j) # L is min val in interval, ie. split point
-			res.append((i, prev_i)) # first interval (i.e. we split at index prev_i)
+			(prev_i, L) = lcp.RMQ(i + 1, j)
+			yield (i, prev_i)
 			if prev_i + 1 < j:
-				(ii, LL) = lcp.RMQ(prev_i + 1, j) # potential second split point
-				while LL == L: # If LL is in fact a split point
-					res.append((prev_i, ii)) # Add interval to list
+				(ii, LL) = lcp.RMQ(prev_i + 1, j)
+				while LL == L:
+					yield (prev_i, ii)
 					prev_i = ii
-					if prev_i + 1 >= j: # If we have no more interval left
+					if prev_i + 1 >= j:
 						break
 					else:
 						(ii, LL) = lcp.RMQ(prev_i + 1, j)
-			res.append((prev_i, j))
-			return res
+			yield (prev_i, j)
 
 
-	def alt_get_child_intervals(self, i, j):
-		if i <= j < i+2:
-			return
-		(prev_i, L) = lcp.RMQ(i + 1, j) # L is min val in interval, ie. split point
-		yield (i, prev_i) # first interval (i.e. we split at index prev_i)
-		if prev_i + 1 < j:
-			(ii, LL) = lcp.RMQ(prev_i + 1, j) # potential second split point
-			while LL == L: # If LL is in fact a split point
-				yield (prev_i, ii) # Add interval to list
-				prev_i = ii
-				if prev_i + 1 >= j: # If we have no more interval left
-					break
-				else:
-					(ii, LL) = lcp.RMQ(prev_i + 1, j)
-		yield (prev_i, j)
-
-
-
+	'''
+	Yields the "inner nodes" in the "suffix tree"
+	as L-intervals; i.e. only the non-singleton L-intervals
+	'''
 	def get_inner_nodes(self, a, b):
 		if b - a <= 2:
-			return # No inner nodes for interval of length b-a
+			return # No inner nodes for interval of length < 2
 		stack = [(a, b)]
 		while stack:
 			(i, j) = stack.pop()
@@ -194,6 +178,43 @@ class lcp_array:
 ########################################################
 
 '''
+Finds all branching tandem repeats using the "smaller half trick" to get a
+running time of O(n log(n)) for a string of length n
+Returns all branching tandem repeats in a list [(string_idx, length)]
+(eg. ABCABC has length 6)
+'''
+def branching_TR_smaller_half(x, sa, lcp):
+	isa = construct_isa(sa)
+	for (i, j) in lcp.get_inner_nodes(0, len(x)):
+		child_nodes = list(lcp.get_child_intervals(i, j))
+		(w_i, w_j) = widest(child_nodes)
+		(_, L) = lcp.RMQ(i + 1, j)
+		for (ii, jj) in child_nodes:
+			if (ii, jj) == (w_i, w_j):
+				continue
+			for q in valid_isa_index(sa, ii, jj, +L):
+				r = isa[sa[q] + L]
+				if (i <= r < j) and not (ii <= r < jj):
+					yield (sa[q], 2*L)
+			for q in valid_isa_index(sa, ii, jj, -L):
+				r = isa[sa[q] - L]
+				if w_i <= r < w_j:
+					yield (sa[r], 2*L)
+
+########################################################
+# Helper functions - BTR
+########################################################
+
+'''
+Constructs the inverse suffix array from the suffix array
+'''
+def construct_isa(sa):
+	isa = [None]*len(sa)
+	for i, a in enumerate(sa):
+		isa[a] = i
+	return isa
+
+'''
 Returns the widest interval [i, j) from a list of intervals
 '''
 def widest(intervals):
@@ -205,68 +226,42 @@ def widest(intervals):
 			max_interval = (i, j)
 	return max_interval
 
-
-
-def valid_index(sa, i, j, offset):
+'''
+Yields the q's in the interval [i, j) for
+which sa[q]+offset is within the interval [0, len(sa)).
+Used for checking if a given index is valid for isa.
+'''
+def valid_isa_index(sa, i, j, offset):
 	for q in range(i, j):
 		if 0 <= sa[q] + offset < len(sa):
 			yield q
 
-'''
-Finds all branching tandem repeats using the "smaller half trick" to get a
-running time of O(n log(n)) for a string of length n
-Returns all branching tandem repeats in a list [(string_idx, length)]
-(eg. ABCABC has length 6)
-'''
-def branching_TR_smaller_half(x, sa, lcp):
-	isa = [None]*len(sa)
-	for i, a in enumerate(sa):
-		isa[a] = i
-	for (i, j) in lcp.get_inner_nodes(0, len(x)):
-		child_nodes = lcp.get_child_intervals(i, j)
-		(w_i, w_j) = widest(child_nodes)
-		(_, L) = lcp.RMQ(i + 1, j)
-		for (ii, jj) in child_nodes:
-			if (ii, jj) == (w_i, w_j):
-				continue
-			for q in valid_index(sa, ii, jj, +L):
-				r = isa[sa[q] + L]
-				if (i <= r < j) and not (ii <= r < jj):
-					yield (sa[q], 2*L)
-			for q in valid_index(sa, ii, jj, -L):
-				r = isa[sa[q] - L]
-				if w_i <= r < w_j:
-					yield (sa[r], 2*L)
 
-
+########################################################
+# Finding all tandem repeats from the branching ones
+########################################################
 
 '''
 Finds all tandem repeats in a string, given a list of branching tandem repeats by using left-rotations
 Eg. if we have a branching TR at pos i consisting of string w*a, then we can check if we also have a
 tandem repeat by left rotation, i.e. by checking if the symbol string[i-1] == a.
 '''
-def old_find_all_tandem_repeats(x, branching_TRs):
-	res = list(branching_TRs)
-	stack = res.copy()
-	while len(stack) > 0:
-		(idx, length) = stack.pop()
-		last_symbol = x[idx + length - 1]
-		if x[idx - 1] == last_symbol:
-			res.append((idx - 1, length))
-			stack.append((idx - 1, length))
-	return res
-
-
 def find_all_tandem_repeats(x, branching_TRs):
 	for (i, L) in branching_TRs:
 		yield (i, L)
 		while can_rotate(x, i, L):
 			yield (i-1, L)
 			i -= 1
-
-
+'''
+Checks if we can left-rotate x[i:n) and get a tandem repeat
+'''
 def can_rotate(x, i, L):
 	return i > 0 and x[i - 1] == x[i + L - 1]
+
+
+########################################################
+# Printing TRs
+########################################################
 
 '''
 Prints the tandem repeats
@@ -290,23 +285,20 @@ def print_TRs(x, TRs):
 
 
 ########################################################
-# TEST CODE
+# TEST CODE: Correctness
 ########################################################
 
 # Input string
-#x = "ACCACCAGTGT$"
+x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
-x = "aaaaaa$"
+#x = "aaaaaa$"
 #x = "aaaa$"
 
 # Suffix array and LCP array
 sa = suffix_array(x).array
 lcp = lcp_array(x, sa)
-
-#print(lcp.get_inner_nodes(0, len(x)))
-
 
 # Find all branching TRs
 branching_TRs = branching_TR_smaller_half(x, sa, lcp)
