@@ -138,17 +138,8 @@ class lcp_array:
 	I.e. get direct child nodes of a node [i, j)
 	'''
 	def get_child_intervals(self, i, j):
-		# Empty interval, eg. (5, 5)
-		if i == j:
-			return []
-		# Singleton interval, eg. (4, 5)
-		elif i + 1 == j:
+		if i + 1 == j:
 			return [(i, j)]
-		# Non-empty, non-singleton interval of length 2, eg. (3, 5)
-		# => We want both (3, 4) and (4, 5) as child intervals
-		elif i + 2 == j:
-			return [(i, i + 1), (i + 1, j)]
-		# Non-empty, non-singleton interval of length > 2, eg. (2, 5)
 		else:
 			res = []
 			(prev_i, L) = lcp.RMQ(i + 1, j) # L is min val in interval, ie. split point
@@ -166,20 +157,34 @@ class lcp_array:
 			return res
 
 
+	def alt_get_child_intervals(self, i, j):
+		if i <= j < i+2:
+			return
+		(prev_i, L) = lcp.RMQ(i + 1, j) # L is min val in interval, ie. split point
+		yield (i, prev_i) # first interval (i.e. we split at index prev_i)
+		if prev_i + 1 < j:
+			(ii, LL) = lcp.RMQ(prev_i + 1, j) # potential second split point
+			while LL == L: # If LL is in fact a split point
+				yield (prev_i, ii) # Add interval to list
+				prev_i = ii
+				if prev_i + 1 >= j: # If we have no more interval left
+					break
+				else:
+					(ii, LL) = lcp.RMQ(prev_i + 1, j)
+		yield (prev_i, j)
+
+
+
 	def get_inner_nodes(self, a, b):
 		if b - a <= 2:
-			return [] # No inner nodes for interval of length b-a
-		res = [(a, b)]
+			return # No inner nodes for interval of length b-a
 		stack = [(a, b)]
-		while len(stack) > 0:
+		while stack:
 			(i, j) = stack.pop()
-			direct_children = self.get_child_intervals(i, j)
-			for (ii, jj) in direct_children:
-				if jj - ii > 1: # non-singleton (non-leaf)
-					res.append((ii, jj))
-				if jj - ii > 2:
-					stack.append((ii, jj))
-		return res
+			yield (i, j)
+			stack.extend((ii, jj)
+				for (ii, jj) in self.get_child_intervals(i, j)
+				if jj > ii + 1)
 
 
 
@@ -202,6 +207,11 @@ def widest(intervals):
 
 
 
+def valid_index(sa, i, j, offset):
+	for q in range(i, j):
+		if 0 <= sa[q] + offset < len(sa):
+			yield q
+
 '''
 Finds all branching tandem repeats using the "smaller half trick" to get a
 running time of O(n log(n)) for a string of length n
@@ -209,45 +219,24 @@ Returns all branching tandem repeats in a list [(string_idx, length)]
 (eg. ABCABC has length 6)
 '''
 def branching_TR_smaller_half(x, sa, lcp):
-	res = []
-	n = len(x)
-	# Inverse suffix array
-	isa = {sa[i]: i for i in range(n)}
-	# "Inner nodes" in T (as L-intervals)
-	inner_nodes = lcp.get_inner_nodes(0, n)
-	# Run through each "inner node", [i, j), of T
-	for (i, j) in inner_nodes:
-		# Direct "child nodes" of [i, j) (as L-intervals)
+	isa = [None]*len(sa)
+	for i, a in enumerate(sa):
+		isa[a] = i
+	for (i, j) in lcp.get_inner_nodes(0, len(x)):
 		child_nodes = lcp.get_child_intervals(i, j)
-		# The widest "child node" (as L-interval)
 		(w_i, w_j) = widest(child_nodes)
-		# L is the shared depth of all "leaves" in "sub-tree" of [i, j)
 		(_, L) = lcp.RMQ(i + 1, j)
-		# Run through each "child node", (ii, jj), EXCEPT THE WIDEST ONE
 		for (ii, jj) in child_nodes:
-			if (ii, jj) == (w_i, w_j): # ignore widest "node"
+			if (ii, jj) == (w_i, w_j):
 				continue
-			# Run through each "leaf", sa[q], in "sub-tree" of (ii, jj)
-			for q in range(ii, jj):
-				# *** Check to the right ***
-				# "Leaf sa[q]+L" might form a branching TR with "leaf sa[q]"
-				if sa[q] + L >= 0 and sa[q] + L < n: # Do not reach out of ISA
-					r = isa[sa[q] + L]
-					# If "leaf" sa[q]+L is below "node" [i,j), but in a
-					# different sub-tree than "leaf" sa[q], then we have
-					# a branching TR.
-					# I.e. if isa[sa[q] + L] is in [i, j) but not in [ii, jj):
-					if (r >= i and r < ii) or (r >= jj and r < j):
-						res.append((sa[q], 2*L))
-				# *** Check to the left (widest sub-tree) ***
-				if sa[q] - L >= 0 and sa[q] + L < n: # Do not reach out of ISA
-					r = isa[sa[q] - L]
-					# If "leaf" sa[q]-L is in the widest sub-tree, then we
-					# would have missed it, since we don't run through the
-					# widest sub-tree, so we add it here
-					if r >= w_i and r < w_j:
-						res.append((sa[r], 2*L))
-	return res
+			for q in valid_index(sa, ii, jj, +L):
+				r = isa[sa[q] + L]
+				if (i <= r < j) and not (ii <= r < jj):
+					yield (sa[q], 2*L)
+			for q in valid_index(sa, ii, jj, -L):
+				r = isa[sa[q] - L]
+				if w_i <= r < w_j:
+					yield (sa[r], 2*L)
 
 
 
@@ -256,9 +245,9 @@ Finds all tandem repeats in a string, given a list of branching tandem repeats b
 Eg. if we have a branching TR at pos i consisting of string w*a, then we can check if we also have a
 tandem repeat by left rotation, i.e. by checking if the symbol string[i-1] == a.
 '''
-def find_all_tandem_repeats(x, branching_TRs):
-	res = branching_TRs.copy()
-	stack = branching_TRs.copy()
+def old_find_all_tandem_repeats(x, branching_TRs):
+	res = list(branching_TRs)
+	stack = res.copy()
 	while len(stack) > 0:
 		(idx, length) = stack.pop()
 		last_symbol = x[idx + length - 1]
@@ -267,6 +256,17 @@ def find_all_tandem_repeats(x, branching_TRs):
 			stack.append((idx - 1, length))
 	return res
 
+
+def find_all_tandem_repeats(x, branching_TRs):
+	for (i, L) in branching_TRs:
+		yield (i, L)
+		while can_rotate(x, i, L):
+			yield (i-1, L)
+			i -= 1
+
+
+def can_rotate(x, i, L):
+	return i > 0 and x[i - 1] == x[i + L - 1]
 
 '''
 Prints the tandem repeats
@@ -278,8 +278,7 @@ def print_TRs(x, TRs):
 		print("x:", x)
 	else:
 		print("x of length", str(len(x)), "is too long, so not printed")
-	TRs.sort()
-	for tr in TRs:
+	for tr in sorted(TRs):
 		idx = tr[0]
 		L = tr[1]
 		if L <= 40:
@@ -293,13 +292,13 @@ def print_TRs(x, TRs):
 ########################################################
 # TEST CODE
 ########################################################
-'''
+
 # Input string
-x = "ACCACCAGTGT$"
+#x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
 #x = "mississippi$"
 #x = "banana$"
-#x = "aaaaaa$"
+x = "aaaaaa$"
 #x = "aaaa$"
 
 # Suffix array and LCP array
@@ -316,13 +315,12 @@ branching_TRs = branching_TR_smaller_half(x, sa, lcp)
 TRs = find_all_tandem_repeats(x, branching_TRs)
 
 # Print the TRs
-print_TRs(x, TRs.copy())
+print_TRs(x, TRs)
 
-'''
 ########################################################
 # TEST CODE: Running time
 ########################################################
-
+'''
 from numpy.random import choice
 
 alpha = ["A", "C", "G", "T"]
@@ -393,5 +391,6 @@ plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec) / nlogn + z", fontsize = 13)
 plt.savefig("time_plot_exp2_" + str(N))
 plt.show()
+'''
 
 
