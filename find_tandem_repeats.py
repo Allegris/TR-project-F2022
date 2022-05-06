@@ -11,9 +11,9 @@ import rmq
 
 '''
 Finds all branching tandem repeats using the "smaller half trick" to get a
-running time of O(n log(n)) for a string of length n
-Returns all branching tandem repeats in a list [(string_idx, length)]
-(eg. ABCABC has length 6)
+running time of O(n log(n)) for a string of length n.
+Yields all branching tandem repeats as tuplets (string_idx, length)
+(eg. ABCABC has length 6).
 '''
 def branching_TR_smaller_half(x, sa, lcp):
 	isa = construct_isa(sa)
@@ -34,8 +34,8 @@ def branching_TR_smaller_half(x, sa, lcp):
 					yield (sa[r], 2*L)
 
 '''
-Yields the "inner nodes" in the "suffix tree"
-as L-intervals; i.e. only the non-singleton L-intervals
+Yields the "inner nodes" in the "suffix tree";
+i.e. all non-singleton as L-intervals below [a,b).
 '''
 def get_inner_nodes(lcp, a, b):
 	if b - a <= 2:
@@ -49,8 +49,8 @@ def get_inner_nodes(lcp, a, b):
 			if jj > ii + 1)
 
 '''
-Get direct child intervals for an L-interval [i,j)
-I.e. get direct child nodes of a node [i, j)
+Yields direct "child nodes" of a "node" [i, j) in "suffix tree";
+i.e. direct child intervals for an L-interval [i,j).
 '''
 def get_child_intervals(lcp, i, j):
 	# Singleton
@@ -73,7 +73,7 @@ def get_child_intervals(lcp, i, j):
 
 '''
 HELPER FUNCTION
-Returns the widest interval [i, j) from a list of intervals
+Returns the widest interval [i, j) from a list of intervals.
 '''
 def widest(intervals):
 	max_size = 0
@@ -100,9 +100,12 @@ def valid_isa_index(sa, i, j, offset):
 ########################################################
 
 '''
-Finds all tandem repeats in a string, given a list of branching tandem repeats by using left-rotations
-Eg. if we have a branching TR at pos i consisting of string w*a, then we can check if we also have a
-tandem repeat by left rotation, i.e. by checking if the symbol string[i-1] == a.
+Yields all tandem repeats in a string, given a list
+of branching tandem repeats by using left-rotations.
+Eg. if we have a branching TR at pos i consisting of
+string w*a, then we can check if we also have a
+tandem repeat by left rotation, i.e. by checking if
+the symbol string[i-1] == a.
 '''
 def find_all_tandem_repeats(x, branching_TRs):
 	for (i, L) in branching_TRs:
@@ -112,7 +115,8 @@ def find_all_tandem_repeats(x, branching_TRs):
 			i -= 1
 
 '''
-Checks if we can left-rotate x[i:n) and get a tandem repeat
+HELPER FUNCTION
+Checks if we can left-rotate x[i:L) and get a tandem repeat
 '''
 def can_rotate(x, i, L):
 	return i > 0 and x[i - 1] == x[i + L - 1]
@@ -123,21 +127,21 @@ def can_rotate(x, i, L):
 ########################################################
 
 '''
-Construct suffix array using the Skew algorithm in time O(n)
+Constructs suffix array using the Skew algorithm in time O(n)
 '''
 def construct_sa(x):
-	alpha, ints = skew.map_string_to_ints(x)
-	return skew.skew_rec(ints, len(alpha))
+	alpha, indices = skew.map_string_to_ints(x)
+	return skew.skew_rec(indices, len(alpha))
 
 '''
-Slow, but simple, function for constructing suffix array.
+Slow (but simple) function for constructing suffix array.
 Only used to test against Skew algo results.
 '''
 def construct_sa_slow(x):
 	return [s[1] for s in sorted((x[i:], i) for i in range(len(x)))]
 
 '''
-Constructs the inverse suffix array from the suffix array
+Constructs the inverse suffix array from a suffix array.
 '''
 def construct_isa(sa):
 	isa = [None]*len(sa)
@@ -146,7 +150,7 @@ def construct_isa(sa):
 	return isa
 
 '''
-Construct LCP array from suffix array
+Constructs the LCP array from a suffix array.
 '''
 def construct_lcp(x, sa):
 	isa = construct_isa(sa)
@@ -168,7 +172,8 @@ def construct_lcp(x, sa):
 	return lcp
 
 '''
-Returns the length of longest shared prefix between suffix i and j
+HELPER FUNCTION
+Returns the length of longest shared prefix between suffix i and j.
 '''
 def shared_prefix_len(x, i, j):
 	m = min(len(x) - i, len(x) - j)
@@ -209,9 +214,9 @@ def print_TRs(x, TRs):
 ########################################################
 
 # Input string
-#x = "ACCACCAGTGT$"
+x = "ACCACCAGTGT$"
 #x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
-x = "mississippi$"
+#x = "mississippi$"
 #x = "banana$"
 #x = "aaaaaa$"
 #x = "aaaa$"
