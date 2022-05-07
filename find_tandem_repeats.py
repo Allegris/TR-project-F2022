@@ -254,8 +254,8 @@ probs = [0.25] * len(alpha)
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
-N = 100000
-lens = range(1, N, 5000)
+N = 10000
+lens = range(1, N, 500)
 
 xs = []
 for i in lens:
@@ -287,7 +287,7 @@ for x in xs:
 plt.scatter(list(lens), times, color = "blue")
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("time_plot_" + str(N))
+plt.savefig("random_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
@@ -296,7 +296,7 @@ plt.scatter(list(lens), exp_times, color = "blue")
 plt.ylim(0, 5*(10**(-6)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time / nlogn + z", fontsize = 13)
-plt.savefig("time_plot_exp2_" + str(N))
+plt.savefig("random_time_plot_exp_" + str(N))
 plt.show()
 plt.clf()
 
@@ -336,7 +336,7 @@ for x in xs:
 plt.scatter(list(lens), times, color = "red")
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("time_plot_" + str(N))
+plt.savefig("wc_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
@@ -345,6 +345,6 @@ plt.scatter(list(lens), exp_times, color = "red")
 plt.ylim(0, 5*(10**(-7))) # worst case data
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time / nlogn + z", fontsize = 13)
-plt.savefig("time_plot_exp_" + str(N))
+plt.savefig("wc_time_plot_exp_" + str(N))
 plt.show()
 plt.clf()
