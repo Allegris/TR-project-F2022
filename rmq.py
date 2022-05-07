@@ -7,8 +7,7 @@ Computes the range minimum query (RMQ) of interval [i,j), i.e. (index and value 
 leftmost occurrence of min value in range [i,j)
 Returns RMQ of the form (index, min_value)
 '''
-def RMQ(array, L, R):
-	RMQ_matrix = RMQ_preprocess(array, len(array))
+def RMQ(RMQ_matrix, array, L, R):
 	interval = array[L:R] # The interval to do RMQ on
 	j = len(interval).bit_length() - 1 # log(interval_len) floor
 	# Min of left and right interval of exponents 2^j
@@ -30,7 +29,8 @@ cols are j = 1, 2, 4, 8, 16,... where we have calculated RMQ for intervals of le
 So col 1 is j = 0 (interval length 2^j = 2^0 = 1),
 col 2 is j = 1 (interval length 2^1=2), etc.
 '''
-def RMQ_preprocess(array, n):
+def RMQ_preprocess(array):
+	n = len(array)
 	# M matrix to fill: n x log(n),
 	# where entry M[i][j] is the RMQ for interval starting at idx i of length 2^j
 	log_n = n.bit_length() # this is log(n) ceil, so eg. for 15 => 4 (2^4 = 16)

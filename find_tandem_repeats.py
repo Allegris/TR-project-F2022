@@ -16,12 +16,12 @@ Yields all branching tandem repeats as tuplets (string_idx, length)
 (eg. ABCABC has length 6).
 '''
 def branching_TR_smaller_half(x, sa, lcp):
-	print("branching")
 	isa = construct_isa(sa)
-	for (i, j) in get_inner_nodes(lcp, 0, len(x)):
-		child_nodes = list(get_child_nodes(lcp, i, j))
+	M = rmq.RMQ_preprocess(lcp)
+	for (i, j) in get_inner_nodes(lcp, M, 0, len(x)):
+		child_nodes = list(get_child_nodes(lcp, M, i, j))
 		(w_i, w_j) = widest(child_nodes)
-		(_, L) = rmq.RMQ(lcp, i + 1, j)
+		(_, L) = rmq.RMQ(M, lcp, i + 1, j)
 		for (ii, jj) in child_nodes:
 			if (ii, jj) == (w_i, w_j):
 				continue
@@ -38,7 +38,7 @@ def branching_TR_smaller_half(x, sa, lcp):
 Yields the "inner nodes" in the "suffix tree";
 i.e. all non-singleton as L-intervals below [a,b).
 '''
-def get_inner_nodes(lcp, a, b):
+def get_inner_nodes(lcp, M, a, b):
 	if b - a <= 2:
 		return # No inner nodes for interval of length < 2
 	stack = [(a, b)]
@@ -46,30 +46,30 @@ def get_inner_nodes(lcp, a, b):
 		(i, j) = stack.pop()
 		yield (i, j)
 		stack.extend((ii, jj)
-			for (ii, jj) in get_child_nodes(lcp, i, j)
+			for (ii, jj) in get_child_nodes(lcp, M, i, j)
 			if jj > ii + 1)
 
 '''
 Yields direct "child nodes" of a "node" [i, j) in "suffix tree";
 i.e. direct child intervals for an L-interval [i,j).
 '''
-def get_child_nodes(lcp, i, j):
+def get_child_nodes(lcp, M, i, j):
 	# Singleton
 	if i + 1 == j:
 		yield (i, j)
 	# Non-singleton
 	else:
-		(prev_i, L) = rmq.RMQ(lcp, i + 1, j)
+		(prev_i, L) = rmq.RMQ(M, lcp, i + 1, j)
 		yield (i, prev_i)
 		if prev_i + 1 < j:
-			(ii, LL) = rmq.RMQ(lcp, prev_i + 1, j)
+			(ii, LL) = rmq.RMQ(M, lcp, prev_i + 1, j)
 			while LL == L:
 				yield (prev_i, ii)
 				prev_i = ii
 				if prev_i + 1 >= j:
 					break
 				else:
-					(ii, LL) = rmq.RMQ(lcp, prev_i + 1, j)
+					(ii, LL) = rmq.RMQ(M, lcp, prev_i + 1, j)
 		yield (prev_i, j)
 
 '''
@@ -109,7 +109,6 @@ tandem repeat by left rotation, i.e. by checking if
 the symbol string[i-1] == a.
 '''
 def find_all_tandem_repeats(x, branching_TRs):
-	print("all tr")
 	for (i, L) in branching_TRs:
 		yield (i, L)
 		while can_rotate(x, i, L):
@@ -227,6 +226,8 @@ x = "ACCACCAGTGT$"
 sa = construct_sa(x)
 #lcp = lcp_array(x, sa)
 lcp = construct_lcp(x, sa)
+global M;
+M = rmq.RMQ_preprocess(lcp)
 
 # Find all branching TRs
 branching_TRs = branching_TR_smaller_half(x, sa, lcp)
@@ -237,31 +238,32 @@ TRs = find_all_tandem_repeats(x, branching_TRs)
 # Print the TRs
 print_TRs(x, TRs)
 '''
+
 ########################################################
 # TEST CODE: Running time
 ########################################################
 
+##### RANDOM DATA #####
+
 from numpy.random import choice
 
 alpha = ["A", "C", "G", "T"]
-#probs = [0.25] * len(alpha)
-probs = [0.1, 0.3, 0.1, 0.5]
+probs = [0.25] * len(alpha)
+#probs = [0.1, 0.3, 0.1, 0.5]
 
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
 N = 100000
-lens = range(1, N, 10000) #10
+lens = range(1, N, 5000)
 
 xs = []
 for i in lens:
 	x = random_string(i)
-	#x = "A" * i
 	xs.append(x + "$")
 
 times = []
 exp_times = []
-exp_times2 = []
 
 for x in xs:
 	ts = []
@@ -278,29 +280,71 @@ for x in xs:
 	times.append(t)
 	n = len(x)
 	print(n)
-	#exp_times.append(t/((n*log2(n))+len(tr)))
-	exp_times.append(t/(n**2))
-	exp_times2.append(t/((n*log2(n))+len(list(tr))))
+	exp_times.append(t/((n*log2(n))+len(list(tr))))
 
 
 # Time plot
 plt.scatter(list(lens), times, color = "blue")
-#plt.xticks(range(1,21))
-#plt.title("n = " + str(n))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
 plt.savefig("time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-plt.scatter(list(lens), exp_times2, color = "blue")
-#plt.xticks(range(1,21))
-#plt.title("n = " + str(n))
-plt.ylim(-(10**(-6)), 10**(-6))
+# exp time plot
+plt.scatter(list(lens), exp_times, color = "blue")
+plt.ylim(0, 5*(10**(-6)))
 plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (sec) / nlogn + z", fontsize = 13)
+plt.ylabel("Time / nlogn + z", fontsize = 13)
 plt.savefig("time_plot_exp2_" + str(N))
 plt.show()
+plt.clf()
+
+##### WORST CASE DATA #####
+
+N = 10000
+lens = range(1, N, 500)
+
+xs = []
+for i in lens:
+	x = "A" * i
+	xs.append(x + "$")
 
 
+times = []
+exp_times = []
 
+for x in xs:
+	ts = []
+	for i in range(5):
+		start = time.time() # Start timer
+		sa = construct_sa(x)
+		lcp = construct_lcp(x, sa)
+		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+		tr = find_all_tandem_repeats(x, branching_TRs)
+		end = time.time() # Stop timer
+		ts.append(end - start)
+	# Average running time
+	t = sum(ts)/(len(ts))
+	times.append(t)
+	n = len(x)
+	print(n)
+	exp_times.append(t/((n*log2(n))+len(list(tr))))
+
+
+# Time plot
+plt.scatter(list(lens), times, color = "red")
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (sec)", fontsize = 13)
+plt.savefig("time_plot_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+# exp time plot
+plt.scatter(list(lens), exp_times, color = "red")
+plt.ylim(0, 5*(10**(-7))) # worst case data
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time / nlogn + z", fontsize = 13)
+plt.savefig("time_plot_exp_" + str(N))
+plt.show()
+plt.clf()
