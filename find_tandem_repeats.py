@@ -259,9 +259,11 @@ lens = range(1, N, 500)
 
 xs = []
 for i in lens:
-	x = random_string(i)
+	#x = random_string(i)
+	x = "A" * i
 	xs.append(x + "$")
 
+'''
 times = []
 exp_times = []
 
@@ -299,7 +301,95 @@ plt.ylabel("Time / nlogn + z", fontsize = 13)
 plt.savefig("random_time_plot_exp_" + str(N))
 plt.show()
 plt.clf()
+'''
 
+## Split into two algos ##
+# Algo 1
+ns = []
+times = []
+exp_times = []
+# Algo 2
+zs = []
+times2 = []
+exp_times2 = []
+
+for x in xs:
+	ts = []
+	ts2 = []
+	tr = []
+	for i in range(5):
+		sa = construct_sa(x)
+		lcp = construct_lcp(x, sa)
+
+		# Algo 1
+		start = time.perf_counter_ns() # Start timer
+		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+		end = time.perf_counter_ns() # Stop timer
+		ts.append(end*10**(-9) - start*10**(-9))
+
+		#Algo 2
+		start2 = time.perf_counter_ns()
+		tr = find_all_tandem_repeats(x, branching_TRs)
+		end2 = time.perf_counter_ns()
+		#ts2.append(end2*10**(-9) - start2*10**(-9))
+		ts2.append(end2 - start2)
+
+	# Algo 1
+	# Average running time
+	n = len(x)
+	ns.append(n)
+	t = sum(ts)/len(ts)
+	times.append(t)
+	exp_times.append(t/((n*log2(n))))
+
+	# Algo 2
+	z = len(list(tr))
+	if z != 0:
+		zs.append(z)
+		t2 =  sum(ts2)/len(ts2)
+		times2.append(t2)
+		exp_times2.append(t2/z)
+
+# Algo 1
+# Time plot
+plt.scatter(ns, times, color = "red")
+plt.ylim(0, 6*(10**(-6)))
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (ns)", fontsize = 13)
+plt.savefig("btr_wc_time_plot_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+# Exp time plot
+plt.scatter(ns, exp_times, color = "red")
+plt.ylim(0, 5*(10**(-10)))
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time / (n log n)", fontsize = 13)
+plt.savefig("btr_wc_time_plot_exp_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+# Algo 1
+# Time plot
+plt.scatter(zs, times2, color = "red")
+#plt.ylim(0, 4*(10**(-4)))
+plt.xlabel("z", fontsize = 13)
+plt.ylabel("Time (ns)", fontsize = 13)
+plt.savefig("alltr_wc_time_plot_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+# Exp time plot
+plt.scatter(zs, exp_times2, color = "red")
+#plt.ylim(0, 2*(10**(-10)))
+plt.xlabel("z", fontsize = 13)
+plt.ylabel("Time / z", fontsize = 13)
+plt.savefig("alltr_wc_time_plot_exp_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+
+'''
 ##### WORST CASE DATA #####
 
 N = 10000
@@ -348,3 +438,4 @@ plt.ylabel("Time / nlogn + z", fontsize = 13)
 plt.savefig("wc_time_plot_exp_" + str(N))
 plt.show()
 plt.clf()
+'''
