@@ -2,7 +2,11 @@ import time
 import matplotlib.pyplot as plt
 from math import log2
 import skew
-import rmq
+from rmq import RMQ
+from rmq import RMQ_preprocess
+from line_profiler import LineProfiler
+lprofiler = LineProfiler()
+
 
 
 ########################################################
@@ -17,11 +21,11 @@ Yields all branching tandem repeats as tuplets (string_idx, length)
 '''
 def branching_TR_smaller_half(x, sa, lcp):
 	isa = construct_isa(sa)
-	M = rmq.RMQ_preprocess(lcp)
+	M = RMQ_preprocess(lcp)
 	for (i, j) in get_inner_nodes(lcp, M, 0, len(x)):
 		child_nodes = list(get_child_nodes(lcp, M, i, j))
 		(w_i, w_j) = widest(child_nodes)
-		(_, L) = rmq.RMQ(M, lcp, i + 1, j)
+		(_, L) = RMQ(lcp, M, i + 1, j)
 		for (ii, jj) in child_nodes:
 			if (ii, jj) == (w_i, w_j):
 				continue
@@ -59,17 +63,17 @@ def get_child_nodes(lcp, M, i, j):
 		yield (i, j)
 	# Non-singleton
 	else:
-		(prev_i, L) = rmq.RMQ(M, lcp, i + 1, j)
+		(prev_i, L) = RMQ(lcp, M, i + 1, j)
 		yield (i, prev_i)
 		if prev_i + 1 < j:
-			(ii, LL) = rmq.RMQ(M, lcp, prev_i + 1, j)
+			(ii, LL) = RMQ(lcp, M, prev_i + 1, j)
 			while LL == L:
 				yield (prev_i, ii)
 				prev_i = ii
 				if prev_i + 1 >= j:
 					break
 				else:
-					(ii, LL) = rmq.RMQ(M, lcp, prev_i + 1, j)
+					(ii, LL) = RMQ(lcp, M, prev_i + 1, j)
 		yield (prev_i, j)
 
 '''
@@ -211,39 +215,50 @@ def print_TRs(x, TRs):
 
 
 ########################################################
-# TEST CODE: Correctness
+# TEST CODE: Correctness + profiling
 ########################################################
 '''
-# Input string
-x = "ACCACCAGTGT$"
-#x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
-#x = "mississippi$"
-#x = "banana$"
-#x = "aaaaaa$"
-#x = "aaaa$"
+def main_func():
+	# Input string
+	x = "AAAAAAAAAAAAAAAAAAAAAAAAAA$"
+	#x = "ACCACCAGTGT$"
+	#x = "ACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGTACCACCAGTGT$"
+	#x = "mississippi$"
+	#x = "banana$"
+	#x = "aaaaaa$"
+	#x = "aaaa$"
 
-# Suffix array and LCP array
-sa = construct_sa(x)
-#lcp = lcp_array(x, sa)
-lcp = construct_lcp(x, sa)
-global M;
-M = rmq.RMQ_preprocess(lcp)
+	# Suffix array and LCP array
+	sa = construct_sa(x)
+	#lcp = lcp_array(x, sa)
+	lcp = construct_lcp(x, sa)
+	global M;
+	M = RMQ_preprocess(lcp)
 
-# Find all branching TRs
-branching_TRs = branching_TR_smaller_half(x, sa, lcp)
+	# Find all branching TRs
+	branching_TRs = branching_TR_smaller_half(x, sa, lcp)
 
-# Continuously left-rotate to get all TRs
-TRs = find_all_tandem_repeats(x, branching_TRs)
+	# Continuously left-rotate to get all TRs
+	TRs = find_all_tandem_repeats(x, branching_TRs)
 
-# Print the TRs
-print_TRs(x, TRs)
+	# Print the TRs
+	print_TRs(x, TRs)
+
+#main_func()
+
+# Profiling
+def prof():
+	lprofiler = LineProfiler()
+	lprofiler.add_function(find_all_tandem_repeats)
+	lp_wrapper = lprofiler(main_func)
+	lp_wrapper()
+	lprofiler.print_stats()
+
+#prof()
 '''
-
 ########################################################
 # TEST CODE: Running time
 ########################################################
-
-##### RANDOM DATA #####
 
 from numpy.random import choice
 
@@ -254,61 +269,24 @@ probs = [0.25] * len(alpha)
 def random_string(n):
 	return "".join(choice(alpha, n, p=probs))
 
+
 N = 10000
 lens = range(1, N, 500)
 
 xs = []
-for i in lens:
-	#x = random_string(i)
-	x = "A" * i
+for n in lens:
+	x = random_string(n) # random data
+	#x = "A" * n # worst case data
 	xs.append(x + "$")
 
-'''
-times = []
-exp_times = []
-
-for x in xs:
-	ts = []
-	for i in range(5):
-		start = time.time() # Start timer
-		sa = construct_sa(x)
-		lcp = construct_lcp(x, sa)
-		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
-		tr = find_all_tandem_repeats(x, branching_TRs)
-		end = time.time() # Stop timer
-		ts.append(end - start)
-	# Average running time
-	t = sum(ts)/(len(ts))
-	times.append(t)
-	n = len(x)
-	print(n)
-	exp_times.append(t/((n*log2(n))+len(list(tr))))
-
-
-# Time plot
-plt.scatter(list(lens), times, color = "blue")
-plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("random_time_plot_" + str(N))
-plt.show()
-plt.clf() # Clear plot
-
-# exp time plot
-plt.scatter(list(lens), exp_times, color = "blue")
-plt.ylim(0, 5*(10**(-6)))
-plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time / nlogn + z", fontsize = 13)
-plt.savefig("random_time_plot_exp_" + str(N))
-plt.show()
-plt.clf()
-'''
 
 ## Split into two algos ##
-# Algo 1
+# Algo 1: Find BRANCHING TRs
 ns = []
 times = []
 exp_times = []
-# Algo 2
+# Algo 2: Find aLL TRs (from branching ones)
+ns2 = []
 zs = []
 times2 = []
 exp_times2 = []
@@ -325,14 +303,15 @@ for x in xs:
 		start = time.perf_counter_ns() # Start timer
 		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
 		end = time.perf_counter_ns() # Stop timer
+		# Append time and convert from nanosec to sec
 		ts.append(end*10**(-9) - start*10**(-9))
 
 		#Algo 2
 		start2 = time.perf_counter_ns()
 		tr = find_all_tandem_repeats(x, branching_TRs)
 		end2 = time.perf_counter_ns()
+		# Append time and convert from nanosec to sec
 		ts2.append(end2*10**(-9) - start2*10**(-9))
-		ts2.append(end2 - start2)
 
 	# Algo 1
 	# Average running time
@@ -343,116 +322,81 @@ for x in xs:
 	exp_times.append(t/((n*log2(n))))
 
 	# Algo 2
+	# If expected time should be O(n^2)
+	'''
 	z = len(list(tr))
 	zs.append(z)
 	t2 =  sum(ts2)/len(ts2)
 	times2.append(t2)
 	exp_times2.append(t2/(n**2))
-
 	'''
+
+	# If expected time should be O(z) - make sure we do not divide by z if z = 0
 	z = len(list(tr))
 	if z != 0:
-		zs.append(n)
+		zs.append(z)
+		ns2.append(n)
 		t2 =  sum(ts2)/len(ts2)
 		times2.append(t2)
 		exp_times2.append(t2/z)
-	'''
 
-# Algo 1
+######## PLOTS ########
+
+### Algo 1 ###
 # Time plot
-plt.scatter(ns, times, color = "red")
+plt.scatter(ns, times, color = "blue")
 plt.ylim(0, 6*(10**(-6)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("btr_wc_time_plot_" + str(N))
+plt.savefig("btr_random_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
 # Exp time plot
-plt.scatter(ns, exp_times, color = "red")
+plt.scatter(ns, exp_times, color = "blue")
 plt.ylim(0, 5*(10**(-10)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time / (n log n)", fontsize = 13)
-plt.savefig("btr_wc_time_plot_exp_" + str(N))
+plt.savefig("btr_random_time_plot_exp_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-# Algo 2
+### Algo 2 ###
 # Z plot
-plt.scatter(ns, zs, color = "red")
+plt.scatter(ns2, zs, color = "blue")     #ns
 #plt.ylim(0, 4*(10**(-4)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("z", fontsize = 13)
-plt.savefig("z_alltr_wc_time_plot_" + str(N))
+plt.savefig("z_alltr_random_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
 # Time plot
-plt.scatter(ns, times2, color = "red")
-#plt.ylim(0, 4*(10**(-4)))
+plt.scatter(ns2, times2, color = "blue")   #ns
+plt.ylim(0, 2*(10**(-4)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("alltr_wc_time_plot_" + str(N))
+plt.savefig("alltr_random_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
 # Exp time plot
+'''
 plt.scatter(ns, exp_times2, color = "red")
-#plt.ylim(0, 100)
+plt.ylim(0, 4*(10**(-11)))
 plt.xlabel("n", fontsize = 13)
 plt.ylabel("Time / n^2", fontsize = 13)
 plt.savefig("alltr_wc_time_plot_exp_" + str(N))
 plt.show()
 plt.clf() # Clear plot
-
-
 '''
-##### WORST CASE DATA #####
 
-N = 10000
-lens = range(1, N, 500)
-
-xs = []
-for i in lens:
-	x = "A" * i
-	xs.append(x + "$")
-
-
-times = []
-exp_times = []
-
-for x in xs:
-	ts = []
-	for i in range(5):
-		start = time.time() # Start timer
-		sa = construct_sa(x)
-		lcp = construct_lcp(x, sa)
-		branching_TRs = branching_TR_smaller_half(x, sa, lcp)
-		tr = find_all_tandem_repeats(x, branching_TRs)
-		end = time.time() # Stop timer
-		ts.append(end - start)
-	# Average running time
-	t = sum(ts)/(len(ts))
-	times.append(t)
-	n = len(x)
-	print(n)
-	exp_times.append(t/((n*log2(n))+len(list(tr))))
-
-
-# Time plot
-plt.scatter(list(lens), times, color = "red")
+# Exp time plot against Z
+plt.scatter(ns2, exp_times2, color = "blue")
+#plt.ylim(0, 4*(10**(-10))) #wc
+plt.ylim(0, 2*(10**(-7))) #random
 plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (sec)", fontsize = 13)
-plt.savefig("wc_time_plot_" + str(N))
+plt.ylabel("Time / z", fontsize = 13)
+plt.savefig("ZZZalltr_random_time_plot_exp_" + str(N))
 plt.show()
 plt.clf() # Clear plot
-
-# exp time plot
-plt.scatter(list(lens), exp_times, color = "red")
-plt.ylim(0, 5*(10**(-7))) # worst case data
-plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time / nlogn + z", fontsize = 13)
-plt.savefig("wc_time_plot_exp_" + str(N))
-plt.show()
-plt.clf()
-'''

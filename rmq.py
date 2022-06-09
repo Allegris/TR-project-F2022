@@ -7,7 +7,7 @@ Computes the range minimum query (RMQ) of interval [i,j), i.e. (index and value 
 leftmost occurrence of min value in range [i,j)
 Returns RMQ of the form (index, min_value)
 '''
-def RMQ(RMQ_matrix, array, L, R):
+def RMQ(array, RMQ_matrix, L, R):
 	interval = array[L:R] # The interval to do RMQ on
 	j = len(interval).bit_length() - 1 # log(interval_len) floor
 	# Min of left and right interval of exponents 2^j
