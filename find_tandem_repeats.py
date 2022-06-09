@@ -331,7 +331,7 @@ for x in xs:
 		start2 = time.perf_counter_ns()
 		tr = find_all_tandem_repeats(x, branching_TRs)
 		end2 = time.perf_counter_ns()
-		#ts2.append(end2*10**(-9) - start2*10**(-9))
+		ts2.append(end2*10**(-9) - start2*10**(-9))
 		ts2.append(end2 - start2)
 
 	# Algo 1
@@ -344,18 +344,26 @@ for x in xs:
 
 	# Algo 2
 	z = len(list(tr))
+	zs.append(z)
+	t2 =  sum(ts2)/len(ts2)
+	times2.append(t2)
+	exp_times2.append(t2/(n**2))
+
+	'''
+	z = len(list(tr))
 	if z != 0:
-		zs.append(z)
+		zs.append(n)
 		t2 =  sum(ts2)/len(ts2)
 		times2.append(t2)
 		exp_times2.append(t2/z)
+	'''
 
 # Algo 1
 # Time plot
 plt.scatter(ns, times, color = "red")
 plt.ylim(0, 6*(10**(-6)))
 plt.xlabel("n", fontsize = 13)
-plt.ylabel("Time (ns)", fontsize = 13)
+plt.ylabel("Time (sec)", fontsize = 13)
 plt.savefig("btr_wc_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
@@ -369,21 +377,30 @@ plt.savefig("btr_wc_time_plot_exp_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
-# Algo 1
-# Time plot
-plt.scatter(zs, times2, color = "red")
+# Algo 2
+# Z plot
+plt.scatter(ns, zs, color = "red")
 #plt.ylim(0, 4*(10**(-4)))
-plt.xlabel("z", fontsize = 13)
-plt.ylabel("Time (ns)", fontsize = 13)
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("z", fontsize = 13)
+plt.savefig("z_alltr_wc_time_plot_" + str(N))
+plt.show()
+plt.clf() # Clear plot
+
+# Time plot
+plt.scatter(ns, times2, color = "red")
+#plt.ylim(0, 4*(10**(-4)))
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time (sec)", fontsize = 13)
 plt.savefig("alltr_wc_time_plot_" + str(N))
 plt.show()
 plt.clf() # Clear plot
 
 # Exp time plot
-plt.scatter(zs, exp_times2, color = "red")
-#plt.ylim(0, 2*(10**(-10)))
-plt.xlabel("z", fontsize = 13)
-plt.ylabel("Time / z", fontsize = 13)
+plt.scatter(ns, exp_times2, color = "red")
+#plt.ylim(0, 100)
+plt.xlabel("n", fontsize = 13)
+plt.ylabel("Time / n^2", fontsize = 13)
 plt.savefig("alltr_wc_time_plot_exp_" + str(N))
 plt.show()
 plt.clf() # Clear plot
